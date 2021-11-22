@@ -1,0 +1,90 @@
+{
+  "5.1": {
+    "description": "Variable Available Capacity with a Single Flow",
+    "duration": "100s",
+    "leftrouter": [
+      {
+	"duration": "40s",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "1mbit",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      },
+      {
+	"duration": "20s",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "2.5mbit",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      },
+      {
+	"duration": "20s",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "0.6mbit",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      },
+      {
+	"duration": "0",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "1mbit",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      }
+    ],
+    "rightrouter": [
+      {
+	"duration": "40s",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "1mbit",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      },
+      {
+	"duration": "20s",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "2.5mbit",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      },
+      {
+	"duration": "20s",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "0.6mbit",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      },
+      {
+	"duration": "0",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "1mbit",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      }
+    ]
+  }
+}
