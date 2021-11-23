@@ -28,13 +28,13 @@ services:
       - NET_ADMIN
 
   sender:
+    image: $SENDER
     build: ./endpoint
     tty: true
-    command: bash
     container_name: sender
     hostname: sender
     volumes:
-      - ./send_log:/logs
+      - ./send_log:/log
     networks:
       leftnet:
         ipv4_address: 172.26.0.3
@@ -42,13 +42,13 @@ services:
       - NET_ADMIN
 
   receiver:
+    image: $RECEIVER
     build: ./endpoint
     tty: true
-    command: bash
     container_name: receiver
     hostname: receiver
     volumes:
-      - ./receive_log:/logs
+      - ./receive_log:/log
     networks:
       rightnet:
         ipv4_address: 172.27.0.3
