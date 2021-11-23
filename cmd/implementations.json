@@ -1,11 +1,11 @@
 {
   "pion": {
     "sender": {
-      "image": "bwe-test-pion_offer",
+      "image": "engelbart/bwe-test-pion-offer",
       "params": ""
     },
     "receiver": {
-      "image": "bwe-test-pion_answer",
+      "image": "engelbart/bwe-test-pion-answer",
       "params": ""
     }
   }
