@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -18,6 +19,9 @@ import (
 
 //go:embed testcases.json
 var defaultTestcases string
+
+//go:embed implementations.json
+var defaultImplementations string
 
 // tsTimeout is the time to wait for containers to spin up before timing out
 const tsTimeout = 5 * time.Minute
@@ -46,16 +50,42 @@ func run() error {
 		return err
 	}
 
-	return runTestcase(tc["5.1"])
+	var is implementations
+	err = json.Unmarshal([]byte(defaultImplementations), &is)
+	if err != nil {
+		return err
+	}
+
+	return runTestcase(tc["1"], is["pion"])
 }
 
-func runTestcase(tc testcase) error {
+type implementations map[string]implementation
+
+type endpoint struct {
+	Image  string `json:"image"`
+	Params string `json:"params"`
+}
+
+type implementation struct {
+	Sender   endpoint `json:"Sender"`
+	Receiver endpoint `json:"Receiver"`
+}
+
+func runTestcase(tc testcase, i implementation) error {
 	upCMD := exec.Command("docker-compose", "up", "--abort-on-container-exit", "--force-recreate")
 	//upCMD.Stdout = os.Stdout
 	//upCMD.Stderr = os.Stderr
 
 	// Use host env
 	upCMD.Env = os.Environ()
+	for k, v := range map[string]string{
+		"SENDER":          i.Sender.Image,
+		"RECEIVER":        i.Receiver.Image,
+		"SENDER_PARAMS":   i.Sender.Params,
+		"RECEIVER_PARAMS": i.Receiver.Params,
+	} {
+		upCMD.Env = append(upCMD.Env, fmt.Sprintf("%v=%v", k, v))
+	}
 	if err := upCMD.Start(); err != nil {
 		return err
 	}

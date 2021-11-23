@@ -1,0 +1,12 @@
+{
+  "pion": {
+    "sender": {
+      "image": "bwe-test-pion_offer",
+      "params": ""
+    },
+    "receiver": {
+      "image": "bwe-test-pion_answer",
+      "params": ""
+    }
+  }
+}
