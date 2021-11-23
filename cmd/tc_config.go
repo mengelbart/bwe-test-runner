@@ -43,7 +43,7 @@ func (t tcConfig) apply(container, iface string, isFirst bool) error {
 		"tc", "qdisc", cmd,
 		"dev", iface,
 		"root", "handle", "1:",
-		"netem", "delay", t.Delay.String(), t.Jitter.String(), "distribution", "normal",
+		"netem", "delay", t.Delay.String(), // t.Jitter.String(), "distribution", "normal",
 	)
 
 	log.Printf("applying tc netem: %v\n", netemCMD.Args)
