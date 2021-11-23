@@ -3,6 +3,7 @@ version: "3.8"
 services:
   leftrouter:
     build: ./router
+    image: engelbart/router
     tty: true
     command: bash
     container_name: leftrouter
@@ -16,6 +17,7 @@ services:
 
   rightrouter:
     build: ./router
+    image: engelbart/router
     tty: true
     command: bash
     container_name: rightrouter
