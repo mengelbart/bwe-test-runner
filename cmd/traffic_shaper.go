@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"os/exec"
 	"strings"
@@ -13,12 +14,13 @@ import (
 )
 
 type TrafficShaper struct {
+	log       io.Writer
 	container string
 	iface     string
 	phases    []tcPhase
 }
 
-func newTrafficShaper(ctx context.Context, name string, phases []tcPhase) (*TrafficShaper, error) {
+func newTrafficShaper(ctx context.Context, name string, phases []tcPhase, log io.Writer) (*TrafficShaper, error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return nil, err
@@ -37,6 +39,7 @@ func newTrafficShaper(ctx context.Context, name string, phases []tcPhase) (*Traf
 						return nil, fmt.Errorf("failed to get interface: %w", err)
 					}
 					return &TrafficShaper{
+						log:       log,
 						container: name,
 						iface:     iface,
 						phases:    phases,
@@ -58,6 +61,7 @@ func (s *TrafficShaper) run(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		fmt.Fprintf(s.log, "%v, %v\n", time.Now().UnixMilli(), p.Config.Rate)
 		if p.Duration.Duration == 0 {
 			return nil
 		}

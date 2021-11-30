@@ -130,19 +130,30 @@ func runTestcase(tc testcase, i implementation) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	leftRouterLog, err := os.Create("leftrouter.log")
+	if err != nil {
+		return err
+	}
+	defer leftRouterLog.Close()
+	rightRouterLog, err := os.Create("rightrouter.log")
+	if err != nil {
+		return err
+	}
+	defer rightRouterLog.Close()
+
 	tsCh := make(chan *TrafficShaper)
 	errCh := make(chan error)
 	go func() {
-		ts, err := newTrafficShaper(ctx, "/leftrouter", tc.Leftrouter)
-		if err != nil {
-			errCh <- err
+		ts, err1 := newTrafficShaper(ctx, "/leftrouter", tc.Leftrouter, leftRouterLog)
+		if err1 != nil {
+			errCh <- err1
 		}
 		tsCh <- ts
 	}()
 	go func() {
-		ts, err := newTrafficShaper(ctx, "/rightrouter", tc.Rightrouter)
-		if err != nil {
-			errCh <- err
+		ts, err1 := newTrafficShaper(ctx, "/rightrouter", tc.Rightrouter, rightRouterLog)
+		if err1 != nil {
+			errCh <- err1
 		}
 		tsCh <- ts
 	}()
@@ -150,7 +161,7 @@ func runTestcase(tc testcase, i implementation) error {
 	tss := []*TrafficShaper{}
 	for i := 0; i < 2; i++ {
 		select {
-		case err := <-errCh:
+		case err = <-errCh:
 			return err
 		case ts := <-tsCh:
 			tss = append(tss, ts)
@@ -159,7 +170,7 @@ func runTestcase(tc testcase, i implementation) error {
 
 	for _, ts := range tss {
 		go func(ts *TrafficShaper) {
-			err := ts.run(ctx)
+			err = ts.run(ctx)
 			if err != nil {
 				errCh <- err
 			}
@@ -171,7 +182,6 @@ func runTestcase(tc testcase, i implementation) error {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		var err error
 		select {
 		case <-time.After(tc.Duration.Duration):
 			log.Printf("testcase time over\n")
@@ -186,6 +196,6 @@ func runTestcase(tc testcase, i implementation) error {
 		done <- err
 	}()
 
-	err := <-done
+	err = <-done
 	return err
 }

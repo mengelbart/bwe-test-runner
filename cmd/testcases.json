@@ -8,7 +8,7 @@
 	"config": {
 	  "delay": "50ms",
 	  "jitter": "30ms",
-	  "rate": "1mbit",
+	  "rate": "1000000",
 	  "burst": "10kb",
 	  "latency": "300ms"
 	}
@@ -18,7 +18,7 @@
 	"config": {
 	  "delay": "50ms",
 	  "jitter": "30ms",
-	  "rate": "2.5mbit",
+	  "rate": "2500000",
 	  "burst": "10kb",
 	  "latency": "300ms"
 	}
@@ -28,7 +28,7 @@
 	"config": {
 	  "delay": "50ms",
 	  "jitter": "30ms",
-	  "rate": "0.6mbit",
+	  "rate": "600000",
 	  "burst": "10kb",
 	  "latency": "300ms"
 	}
@@ -38,7 +38,7 @@
 	"config": {
 	  "delay": "50ms",
 	  "jitter": "30ms",
-	  "rate": "1mbit",
+	  "rate": "1000000",
 	  "burst": "10kb",
 	  "latency": "300ms"
 	}
@@ -50,7 +50,7 @@
 	"config": {
 	  "delay": "50ms",
 	  "jitter": "30ms",
-	  "rate": "1mbit",
+	  "rate": "1000000",
 	  "burst": "10kb",
 	  "latency": "300ms"
 	}
@@ -60,7 +60,7 @@
 	"config": {
 	  "delay": "50ms",
 	  "jitter": "30ms",
-	  "rate": "2.5mbit",
+	  "rate": "2500000",
 	  "burst": "10kb",
 	  "latency": "300ms"
 	}
@@ -70,7 +70,7 @@
 	"config": {
 	  "delay": "50ms",
 	  "jitter": "30ms",
-	  "rate": "0.6mbit",
+	  "rate": "600000",
 	  "burst": "10kb",
 	  "latency": "300ms"
 	}
@@ -80,7 +80,7 @@
 	"config": {
 	  "delay": "50ms",
 	  "jitter": "30ms",
-	  "rate": "1mbit",
+	  "rate": "1000000",
 	  "burst": "10kb",
 	  "latency": "300ms"
 	}
