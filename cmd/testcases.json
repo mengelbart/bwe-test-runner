@@ -89,12 +89,22 @@
     ]
   },
   "2": {
-    "description": "Variable Available Capacity with a Multiple Flows",
+    "description": "Variable Available Capacity with Multiple Flows",
     "dc_file": "2-docker-compose.yml",
-    "duration": "100s",
+    "duration": "120s",
     "leftrouter": [
       {
-	"duration": "40s",
+	"duration": "25s",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "2000000",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      },
+      {
+	"duration": "25s",
 	"config": {
 	  "delay": "50ms",
 	  "jitter": "30ms",
@@ -104,21 +114,21 @@
 	}
       },
       {
-	"duration": "20s",
+	"duration": "25s",
 	"config": {
 	  "delay": "50ms",
 	  "jitter": "30ms",
-	  "rate": "2500000",
+	  "rate": "1750000",
 	  "burst": "10kb",
 	  "latency": "300ms"
 	}
       },
       {
-	"duration": "20s",
+	"duration": "25s",
 	"config": {
 	  "delay": "50ms",
 	  "jitter": "30ms",
-	  "rate": "600000",
+	  "rate": "500000",
 	  "burst": "10kb",
 	  "latency": "300ms"
 	}
@@ -136,7 +146,17 @@
     ],
     "rightrouter": [
       {
-	"duration": "40s",
+	"duration": "25s",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "2000000",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      },
+      {
+	"duration": "25s",
 	"config": {
 	  "delay": "50ms",
 	  "jitter": "30ms",
@@ -146,21 +166,21 @@
 	}
       },
       {
-	"duration": "20s",
+	"duration": "25s",
 	"config": {
 	  "delay": "50ms",
 	  "jitter": "30ms",
-	  "rate": "2500000",
+	  "rate": "1750000",
 	  "burst": "10kb",
 	  "latency": "300ms"
 	}
       },
       {
-	"duration": "20s",
+	"duration": "25s",
 	"config": {
 	  "delay": "50ms",
 	  "jitter": "30ms",
-	  "rate": "600000",
+	  "rate": "500000",
 	  "burst": "10kb",
 	  "latency": "300ms"
 	}
@@ -171,6 +191,85 @@
 	  "delay": "50ms",
 	  "jitter": "30ms",
 	  "rate": "1000000",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      }
+    ]
+  },
+  "3": {
+    "description": "Congested Feedback Link with Bi-directional Media Flows",
+    "dc_file": "3-docker-compose.yml",
+    "duration": "100s",
+    "leftrouter": [
+      {
+	"duration": "20s",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "2000000",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      },
+      {
+	"duration": "20s",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "1000000",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      },
+      {
+	"duration": "20s",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "500000",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      },
+      {
+	"duration": "0",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "2000000",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      }
+    ],
+    "rightrouter": [
+      {
+	"duration": "35s",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "2000000",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      },
+      {
+	"duration": "35s",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "800000",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      },
+      {
+	"duration": "0",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "2000000",
 	  "burst": "10kb",
 	  "latency": "300ms"
 	}
