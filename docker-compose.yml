@@ -35,8 +35,13 @@ services:
     tty: true
     container_name: sender
     hostname: sender
+    environment:
+      ROLE: 'sender'
+      ARGS: $SENDER_ARGS
+      RECEIVER: '172.27.0.3'
     volumes:
       - ./send_log:/log
+      - ./input:/input:ro
     networks:
       leftnet:
         ipv4_address: 172.26.0.3
@@ -49,8 +54,12 @@ services:
     tty: true
     container_name: receiver
     hostname: receiver
+    environment:
+      ROLE: 'receiver'
+      ARGS: $RECEIVER_ARGS
     volumes:
       - ./receive_log:/log
+      - ./output:/output
     networks:
       rightnet:
         ipv4_address: 172.27.0.3

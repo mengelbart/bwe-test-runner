@@ -17,19 +17,36 @@ import (
 	"github.com/spf13/cobra"
 )
 
-//go:embed testcases.json
-var defaultTestcases string
-
-//go:embed implementations.json
-var defaultImplementations string
-
 // tsTimeout is the time to wait for containers to spin up before timing out
 const tsTimeout = 5 * time.Minute
 
-var errTrafficShaperTimeout = errors.New("traffic shaper timed out while waiting for containers to spin up")
+// embedded static data
+var (
+	//go:embed testcases.json
+	defaultTestcases string
+
+	//go:embed implementations.json
+	defaultImplementations string
+)
+
+// errors
+var (
+	errTrafficShaperTimeout  = errors.New("traffic shaper timed out while waiting for containers to spin up")
+	errUnknownScenario       = errors.New("unknown scenario")
+	errUnknownImplementation = errors.New("unknown implementation")
+)
+
+// flags
+var (
+	scenarioFlag       string
+	implementationFlag string
+)
 
 func init() {
 	rootCmd.AddCommand(runCmd)
+
+	runCmd.Flags().StringVarP(&scenarioFlag, "scenario", "s", "1", "Test case scenario to run")
+	runCmd.Flags().StringVarP(&implementationFlag, "implementation", "i", "pion", "Implementation to run")
 }
 
 var runCmd = &cobra.Command{
@@ -56,14 +73,22 @@ func run() error {
 		return err
 	}
 
-	return runTestcase(tc["1"], is["pion"])
+	t, ok := tc[scenarioFlag]
+	if !ok {
+		return errUnknownScenario
+	}
+	i, ok := is[implementationFlag]
+	if !ok {
+		return errUnknownImplementation
+	}
+	return runTestcase(t, i)
 }
 
 type implementations map[string]implementation
 
 type endpoint struct {
-	Image  string `json:"image"`
-	Params string `json:"params"`
+	Image string `json:"image"`
+	Args  string `json:"args"`
 }
 
 type implementation struct {
@@ -79,10 +104,10 @@ func runTestcase(tc testcase, i implementation) error {
 	// Use host env
 	upCMD.Env = os.Environ()
 	for k, v := range map[string]string{
-		"SENDER":          i.Sender.Image,
-		"RECEIVER":        i.Receiver.Image,
-		"SENDER_PARAMS":   i.Sender.Params,
-		"RECEIVER_PARAMS": i.Receiver.Params,
+		"SENDER":        i.Sender.Image,
+		"RECEIVER":      i.Receiver.Image,
+		"SENDER_ARGS":   i.Sender.Args,
+		"RECEIVER_ARGS": i.Receiver.Args,
 	} {
 		upCMD.Env = append(upCMD.Env, fmt.Sprintf("%v=%v", k, v))
 	}

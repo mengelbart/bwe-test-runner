@@ -1,12 +1,20 @@
 {
   "pion": {
     "sender": {
-      "image": "engelbart/bwe-test-pion-offer",
-      "params": ""
+      "image": "engelbart/bwe-test-pion-offer"
     },
     "receiver": {
-      "image": "engelbart/bwe-test-pion-answer",
-      "params": ""
+      "image": "engelbart/bwe-test-pion-answer"
+    }
+  },
+  "rtp-over-quic": {
+    "sender": {
+      "image": "engelbart/rtp-over-quic:latest",
+      "args": ""
+    },
+    "receiver": {
+      "image": "engelbart/rtp-over-quic:latest",
+      "args": ""
     }
   }
 }
