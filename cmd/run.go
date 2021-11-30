@@ -9,6 +9,8 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"sort"
+	"strings"
 	"syscall"
 	"time"
 
@@ -40,13 +42,44 @@ var (
 var (
 	scenarioFlag       string
 	implementationFlag string
+
+	tc testcases
+	is implementations
 )
+
+func testcaseNames(m testcases) []string {
+	res := []string{}
+	for k := range m {
+		res = append(res, k)
+	}
+	sort.Strings(res)
+	return res
+}
+
+func implementationNames(i implementations) []string {
+	res := []string{}
+	for k := range i {
+		res = append(res, k)
+	}
+	sort.Strings(res)
+	return res
+}
 
 func init() {
 	rootCmd.AddCommand(runCmd)
 
-	runCmd.Flags().StringVarP(&scenarioFlag, "scenario", "s", "1", "Test case scenario to run")
-	runCmd.Flags().StringVarP(&implementationFlag, "implementation", "i", "pion", "Implementation to run")
+	err := json.Unmarshal([]byte(defaultTestcases), &tc)
+	if err != nil {
+		panic(err)
+	}
+
+	err = json.Unmarshal([]byte(defaultImplementations), &is)
+	if err != nil {
+		panic(err)
+	}
+
+	runCmd.Flags().StringVarP(&scenarioFlag, "scenario", "s", "1", fmt.Sprintf("Test case scenario to run (options: %v)", strings.Join(testcaseNames(tc), ", ")))
+	runCmd.Flags().StringVarP(&implementationFlag, "implementation", "i", "pion", fmt.Sprintf("Implementation to run (options: %v)", strings.Join(implementationNames(is), ", ")))
 }
 
 var runCmd = &cobra.Command{
@@ -60,18 +93,6 @@ var runCmd = &cobra.Command{
 }
 
 func run() error {
-
-	var tc testcases
-	err := json.Unmarshal([]byte(defaultTestcases), &tc)
-	if err != nil {
-		return err
-	}
-
-	var is implementations
-	err = json.Unmarshal([]byte(defaultImplementations), &is)
-	if err != nil {
-		return err
-	}
 
 	t, ok := tc[scenarioFlag]
 	if !ok {
@@ -97,17 +118,25 @@ type implementation struct {
 }
 
 func runTestcase(tc testcase, i implementation) error {
-	upCMD := exec.Command("docker-compose", "up", "--abort-on-container-exit", "--force-recreate")
-	//upCMD.Stdout = os.Stdout
-	//upCMD.Stderr = os.Stderr
+	upCMD := exec.Command(
+		"docker-compose", "-f", tc.DCFile,
+		"up", "--abort-on-container-exit", "--force-recreate",
+	)
+	upCMD.Stdout = os.Stdout
+	upCMD.Stderr = os.Stderr
 
 	// Use host env
 	upCMD.Env = os.Environ()
 	for k, v := range map[string]string{
-		"SENDER":        i.Sender.Image,
-		"RECEIVER":      i.Receiver.Image,
-		"SENDER_ARGS":   i.Sender.Args,
-		"RECEIVER_ARGS": i.Receiver.Args,
+		"SENDER_A":        i.Sender.Image,
+		"RECEIVER_A":      i.Receiver.Image,
+		"SENDER_A_ARGS":   i.Sender.Args,
+		"RECEIVER_A_ARGS": i.Receiver.Args,
+
+		"SENDER_B":        i.Sender.Image,
+		"RECEIVER_B":      i.Receiver.Image,
+		"SENDER_B_ARGS":   i.Sender.Args,
+		"RECEIVER_B_ARGS": i.Receiver.Args,
 	} {
 		upCMD.Env = append(upCMD.Env, fmt.Sprintf("%v=%v", k, v))
 	}
@@ -116,7 +145,7 @@ func runTestcase(tc testcase, i implementation) error {
 	}
 
 	defer func() {
-		downCMD := exec.Command("docker-compose", "down")
+		downCMD := exec.Command("docker-compose", "-f", tc.DCFile, "down")
 		//downCMD.Stdout = os.Stdout
 		//downCMD.Stderr = os.Stderr
 

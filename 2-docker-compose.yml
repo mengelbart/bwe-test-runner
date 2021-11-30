@@ -29,18 +29,17 @@ services:
     cap_add:
       - NET_ADMIN
 
-  sender:
-    image: $SENDER
-    build: ./endpoint
+  sender_a:
+    image: $SENDER_A
     tty: true
-    container_name: sender
-    hostname: sender
+    container_name: sender_a
+    hostname: sender_a
     environment:
       ROLE: 'sender'
-      ARGS: $SENDER_ARGS
+      ARGS: $SENDER_A_ARGS
       RECEIVER: '172.27.0.3'
     volumes:
-      - ./send_log:/log
+      - ./a/send_log:/log
       - ./input:/input:ro
     networks:
       leftnet:
@@ -48,21 +47,57 @@ services:
     cap_add:
       - NET_ADMIN
 
-  receiver:
-    image: $RECEIVER
-    build: ./endpoint
+  receiver_a:
+    image: $RECEIVER_A
     tty: true
-    container_name: receiver
-    hostname: receiver
+    container_name: receiver_a
+    hostname: receiver_a
     environment:
       ROLE: 'receiver'
-      ARGS: $RECEIVER_ARGS
+      ARGS: $RECEIVER_A_ARGS
+      SENDER: '172.26.0.3'
     volumes:
-      - ./receive_log:/log
-      - ./output:/output
+      - ./a/receive_log:/log
+      - ./a/output:/output
     networks:
       rightnet:
         ipv4_address: 172.27.0.3
+    cap_add:
+      - NET_ADMIN
+
+  sender_b:
+    image: $SENDER_B
+    tty: true
+    container_name: sender_b
+    hostname: sender_b
+    environment:
+      ROLE: 'sender'
+      ARGS: $SENDER_B_ARGS
+      RECEIVER: '172.27.0.4'
+    volumes:
+      - ./b/send_log:/log
+      - ./input:/input:ro
+    networks:
+      leftnet:
+        ipv4_address: 172.26.0.4
+    cap_add:
+      - NET_ADMIN
+
+  receiver_b:
+    image: $RECEIVER_B
+    tty: true
+    container_name: receiver_b
+    hostname: receiver_b
+    environment:
+      ROLE: 'receiver'
+      ARGS: $RECEIVER_B_ARGS
+      SENDER: '172.26.0.4'
+    volumes:
+      - ./b/receive_log:/log
+      - ./b/output:/output
+    networks:
+      rightnet:
+        ipv4_address: 172.27.0.4
     cap_add:
       - NET_ADMIN
 

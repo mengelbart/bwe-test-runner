@@ -12,6 +12,7 @@ type testcases map[string]testcase
 
 type testcase struct {
 	Description string    `json:"description"`
+	DCFile      string    `json:"dc_file"`
 	Duration    Duration  `json:"duration"`
 	Leftrouter  []tcPhase `json:"leftrouter"`
 	Rightrouter []tcPhase `json:"rightrouter"`
