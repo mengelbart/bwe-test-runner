@@ -1,5 +1,6 @@
 {
   "pion": {
+    "name": "pion",
     "sender": {
       "image": "engelbart/bwe-test-pion-offer"
     },
@@ -8,6 +9,7 @@
     }
   },
   "rtp-over-quic": {
+    "name": "rtp-over-quic",
     "sender": {
       "image": "engelbart/rtp-over-quic:latest",
       "args": ""

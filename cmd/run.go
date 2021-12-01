@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -21,6 +22,11 @@ import (
 
 // tsTimeout is the time to wait for containers to spin up before timing out
 const tsTimeout = 5 * time.Minute
+
+const (
+	leftRouterLogFile  = "output/leftrouter.log"
+	rightRouterLogFile = "output/rightrouter.log"
+)
 
 // embedded static data
 var (
@@ -40,6 +46,7 @@ var (
 
 // flags
 var (
+	runDate            int64
 	scenarioFlag       string
 	implementationFlag string
 
@@ -78,6 +85,7 @@ func init() {
 		panic(err)
 	}
 
+	runCmd.Flags().Int64VarP(&runDate, "date", "d", time.Now().Unix(), "Unix Timestamp in seconds since epoch")
 	runCmd.Flags().StringVarP(&scenarioFlag, "scenario", "s", "1", fmt.Sprintf("Test case scenario to run (options: %v)", strings.Join(testcaseNames(tc), ", ")))
 	runCmd.Flags().StringVarP(&implementationFlag, "implementation", "i", "pion", fmt.Sprintf("Implementation to run (options: %v)", strings.Join(implementationNames(is), ", ")))
 }
@@ -102,7 +110,7 @@ func run() error {
 	if !ok {
 		return errUnknownImplementation
 	}
-	return runTestcase(t, i)
+	return runTestcase(runDate, t, i)
 }
 
 type implementations map[string]implementation
@@ -113,14 +121,52 @@ type endpoint struct {
 }
 
 type implementation struct {
+	Name     string   `json:"name"`
 	Sender   endpoint `json:"Sender"`
 	Receiver endpoint `json:"Receiver"`
 }
 
-func runTestcase(tc testcase, i implementation) error {
+func runTestcase(date int64, tc testcase, i implementation) error {
+
+	for _, path := range []string{
+		"output/a/send_log",
+		"output/a/receive_log",
+		"output/a/output",
+		"output/b/send_log",
+		"output/b/receive_log",
+		"output/b/output",
+	} {
+		if err := os.MkdirAll(path, os.ModePerm); err != nil {
+			return err
+		}
+	}
+
+	config, err := json.Marshal(struct {
+		Date           int64          `json:"date"`
+		TestCase       testcase       `json:"scenario"`
+		Implementation implementation `json:"implementation"`
+	}{
+		Date:           date,
+		TestCase:       tc,
+		Implementation: i,
+	})
+	if err != nil {
+		return err
+	}
+	configFile, err := os.Create("output/config.json")
+	if err != nil {
+		return err
+	}
+	if _, err = configFile.Write(config); err != nil {
+		return err
+	}
+	if err = configFile.Close(); err != nil {
+		return err
+	}
+
 	upCMD := exec.Command(
 		"docker-compose", "-f", tc.DCFile,
-		"up", "--abort-on-container-exit", "--force-recreate",
+		"up", "--force-recreate",
 	)
 	upCMD.Stdout = os.Stdout
 	upCMD.Stderr = os.Stderr
@@ -140,7 +186,7 @@ func runTestcase(tc testcase, i implementation) error {
 	} {
 		upCMD.Env = append(upCMD.Env, fmt.Sprintf("%v=%v", k, v))
 	}
-	if err := upCMD.Start(); err != nil {
+	if err = upCMD.Start(); err != nil {
 		return err
 	}
 
@@ -151,20 +197,20 @@ func runTestcase(tc testcase, i implementation) error {
 
 		// Use host env
 		downCMD.Env = os.Environ()
-		if err := downCMD.Run(); err != nil {
-			log.Printf("failed to shutdown docker compose setup: %v\n", err)
+		if err1 := downCMD.Run(); err1 != nil {
+			log.Printf("failed to shutdown docker compose setup: %v\n", err1)
 		}
 	}()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	leftRouterLog, err := os.Create("leftrouter.log")
+	leftRouterLog, err := os.Create(leftRouterLogFile)
 	if err != nil {
 		return err
 	}
 	defer leftRouterLog.Close()
-	rightRouterLog, err := os.Create("rightrouter.log")
+	rightRouterLog, err := os.Create(rightRouterLogFile)
 	if err != nil {
 		return err
 	}
@@ -226,5 +272,42 @@ func runTestcase(tc testcase, i implementation) error {
 	}()
 
 	err = <-done
-	return err
+	if err != nil {
+		return err
+	}
+
+	if err = copyRouterLogs(tc.Name, leftRouterLogFile, rightRouterLogFile); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func copyRouterLogs(tc string, leftrouterLog, rightrouterLog string) error {
+	switch tc {
+	case "1":
+		return copyFile(leftrouterLog, "output/a/router.log")
+	case "2":
+		if err := copyFile(leftrouterLog, "output/a/router.log"); err != nil {
+			return err
+		}
+		return copyFile(leftrouterLog, "output/b/router.log")
+	case "3":
+		if err := copyFile(leftrouterLog, "output/a/router.log"); err != nil {
+			return err
+		}
+		return copyFile(rightrouterLog, "output/b/router.log")
+	}
+	return nil
+}
+
+func copyFile(src, dst string) error {
+	bytesRead, err := ioutil.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	if err := ioutil.WriteFile(dst, bytesRead, 0644); err != nil {
+		return err
+	}
+	return nil
 }

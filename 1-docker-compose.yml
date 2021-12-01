@@ -39,7 +39,7 @@ services:
       ARGS: $SENDER_A_ARGS
       RECEIVER: '172.27.0.3'
     volumes:
-      - ./a/send_log:/log
+      - ./output/a/send_log:/log
       - ./input:/input:ro
     networks:
       leftnet:
@@ -57,8 +57,8 @@ services:
       ARGS: $RECEIVER_A_ARGS
       SENDER: '172.26.03'
     volumes:
-      - ./a/receive_log:/log
-      - ./a/output:/output
+      - ./output/a/receive_log:/log
+      - ./output/a/output:/output
     networks:
       rightnet:
         ipv4_address: 172.27.0.3

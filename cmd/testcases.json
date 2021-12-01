@@ -1,5 +1,6 @@
 {
   "1": {
+    "name": "1",
     "description": "Variable Available Capacity with a Single Flow",
     "dc_file": "1-docker-compose.yml",
     "duration": "100s",
@@ -89,6 +90,7 @@
     ]
   },
   "2": {
+    "name": "2",
     "description": "Variable Available Capacity with Multiple Flows",
     "dc_file": "2-docker-compose.yml",
     "duration": "120s",
@@ -198,6 +200,7 @@
     ]
   },
   "3": {
+    "name": "3",
     "description": "Congested Feedback Link with Bi-directional Media Flows",
     "dc_file": "3-docker-compose.yml",
     "duration": "100s",

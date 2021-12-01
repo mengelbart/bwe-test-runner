@@ -11,6 +11,7 @@ import (
 type testcases map[string]testcase
 
 type testcase struct {
+	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	DCFile      string    `json:"dc_file"`
 	Duration    Duration  `json:"duration"`
