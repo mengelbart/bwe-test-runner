@@ -12,11 +12,11 @@
     "name": "rtp-over-quic",
     "sender": {
       "image": "engelbart/rtp-over-quic:latest",
-      "args": ""
+      "args": "-codec synthetic -cc scream"
     },
     "receiver": {
       "image": "engelbart/rtp-over-quic:latest",
-      "args": ""
+      "args": "-codec synthetic -cc scream"
     }
   }
 }

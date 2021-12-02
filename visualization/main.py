@@ -28,6 +28,7 @@ def plot_rates(subdir, sender, plot_path):
         usecols = [0, 1],
     )
     cc_df.index = pd.to_datetime(cc_df.index - cc_df.index[0], unit='ms')
+    cc_df = cc_df[cc_df['target bitrate'] > 0]
 
     # Hack to extend bandwidth limit step function plot until $cc_df.index.max() (end of plot)
     lr_last = lr_df.iloc[[-1]]
