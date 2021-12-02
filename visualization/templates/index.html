@@ -6,58 +6,12 @@
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
 
-    <title>RTP over QUIC Test Runner</title>
+    <title>Bandwidth Estimation Test Runner</title>
   </head>
 
   <body>
-
     <div class="container-fluid">
-
-      <h1>RTP over QUIC Test Runner</h1>
-
-      <h3>Measurement Results</h3>
-      <table class="table table-bordered">
-        <thead>
-          <tr>
-            {{ range .TableHeaders }}
-              <th data-bs-toggle="tooltip" data-bs-placement="top" title="{{ .Tooltip }}">{{ .Header }}</th>
-            {{ end }}
-          </tr>
-        </thead>
-
-        <tbody>
-          {{ range .TableRows }}
-          <tr>
-            <td>Send: <a href="{{ .Implementation.Sender.URL }}" target="_blank">{{ .Implementation.Name }}</a><br>
-              Recv: <a href="{{ .Implementation.Receiver.URL }}" target="_blank">{{ .Implementation.Name }}</a>
-            </td>
-
-            {{ range .Metrics }}
-              <td>
-                {{ if . }}
-                  <a href="{{ .Link }}" class="btn btn-primary btn-sm">Link</a>
-                  <span class="badge bg-secondary" data-bs-toggle="tooltip" data-bs-placement="top" title="Average SSIM: {{ .Metrics.AverageSSIM }}">S: {{ .Metrics.AverageSSIM }}</span>
-                  <span class="badge bg-secondary" data-bs-toggle="tooltip" data-bs-placement="top" title="Average PSNR: {{ .Metrics.AveragePSNR }}">P: {{ .Metrics.AveragePSNR }}</span>
-                  {{ if .Metrics.AverageTargetBitrate }}
-                  <span class="badge bg-secondary" data-bs-toggle="tooltip" data-bs-placement="top" title="Average Target Bitrate: {{ .Metrics.AverageTargetBitrate }}">B: {{ .Metrics.AverageTargetBitrate }}</span>
-                  {{ end }}
-                {{ end }}
-              </td>
-            {{ end }}
-          </tr>
-          {{ end }}
-        </tbody>
-      </table>
-
+      <h1>Bandwidth Estimation Test Runner</h1>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
-    <script>
-      // Enable tooltips
-      var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-      var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-          return new bootstrap.Tooltip(tooltipTriggerEl)
-      })
-    </script>
   </body>
 </html>
