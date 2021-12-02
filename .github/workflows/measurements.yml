@@ -1,0 +1,79 @@
+name: measurements
+
+on:
+  push:
+    branches: [ main ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  config:
+    runs-on: ubuntu-latest
+    outputs:
+      starttime: ${{ steps.set-starttime.outputs.starttime }}
+      implementations: ${{ steps.set-implementations.outputs.implementations }}
+      testcases: ${{ steps.set-testcases.outputs.testcases }}
+      images: ${{ steps.set-images.outputs.images }}
+    name: Set config
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set start time
+        id: set-starttime
+        run: |
+          STARTTIME=$(date +%s)
+          echo $STARTTIME
+          echo "::set-output name=starttime::$STARTTIME"
+      - name: Set implementations
+        id: set-implementations
+        run: |
+          IMPLEMENTATIONS=$(jq -c 'keys_unsorted' cmd/implementations.json)
+          echo $IMPLEMENTATIONS
+          echo "::set-output name=implementations::$IMPLEMENTATIONS"
+      - name: Set testcases
+        id: set-testcases
+        run: |
+          TESTCASES=$(jq -c 'keys_unsorted' cmd/testcases.json)
+          echo $TESTCASES
+          echo "::set-output name=testcases::$TESTCASES"
+      - name: Set images
+        id: set-images
+        run: |
+          IMAGES=$(jq -c 'map(.sender.image) + map(.receiver.image) | unique' cmd/implementations.json)
+          echo $IMAGES
+          echo "::set-output name=images::$IMAGES"
+
+  tests:
+    needs: [ config ]
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        implementation: ${{ fromJson(needs.config.outputs.implementations) }}
+        testcase: ${{ fromJson(needs.config.outputs.testcases) }}
+    steps:
+      - uses: actions/setup-go@v1
+        with:
+          go-version: '1.17.3'
+      - uses: actions/checkout@v2
+      - name: Run measurements
+        run: |
+          go run main.go run --date ${{ needs.config.outputs.starttime }} --implementation ${{ matrix.implementation }} --scenario ${{ matrix.testcase }}
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: Install python deps
+        run: pip install -r visualization/requirements.txt
+      - name: Evaluate results
+        run: |
+          ./visualization/main.py
+      - name: Deploy latest to GitHub pages
+        uses: JamesIves/github-pages-deploy-action@4.1.7
+        with:
+          branch: gh-pages
+          folder: html/${{ needs.config.outputs.starttime }}/${{ matrix.implementation }}/${{ matrix.testcase }}
+          target-folder: ${{ needs.config.outputs.starttime }}/${{ matrix.implementation }}/${{ matrix.testcase }}
+          clean: false
+
