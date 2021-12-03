@@ -2,6 +2,7 @@
   "1": {
     "name": "1",
     "description": "Variable Available Capacity with a Single Flow",
+    "href": "https://www.rfc-editor.org/rfc/rfc8867.html#section-5.1",
     "dc_file": "1-docker-compose.yml",
     "duration": "100s",
     "leftrouter": [
@@ -91,6 +92,7 @@
   },
   "2": {
     "name": "2",
+    "href": "https://www.rfc-editor.org/rfc/rfc8867.html#section-5.2",
     "description": "Variable Available Capacity with Multiple Flows",
     "dc_file": "2-docker-compose.yml",
     "duration": "120s",
@@ -201,6 +203,7 @@
   },
   "3": {
     "name": "3",
+    "href": "https://www.rfc-editor.org/rfc/rfc8867.html#section-5.3",
     "description": "Congested Feedback Link with Bi-directional Media Flows",
     "dc_file": "3-docker-compose.yml",
     "duration": "100s",

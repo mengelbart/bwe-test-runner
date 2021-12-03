@@ -2,7 +2,7 @@ name: measurements
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -77,3 +77,19 @@ jobs:
           target-folder: ${{ needs.config.outputs.starttime }}/${{ matrix.implementation }}/${{ matrix.testcase }}
           clean: false
 
+  index:
+    needs: [ tests ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: checkout gh-pages
+        run: |
+          git worktree add gh-pages gh-pages
+      - name: create index pages
+        run: |
+          ./visualization/index.py
+      - name: Deploy index pages to GitHub pages
+        uses: JamesIves/github-pages-deploy-action@4.1.7
+        with:
+          branch: gh-pages
+          folder: gh-pages
