@@ -78,13 +78,13 @@ jobs:
           clean: false
 
   index:
-    needs: [ tests ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: checkout gh-pages
         run: |
-          git worktree add gh-pages gh-pages
+          git fetch --all
+          git worktree add -B gh-pages gh-pages refs/remotes/origin/gh-pages
       - name: create index pages
         run: |
           ./visualization/index.py
