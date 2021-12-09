@@ -9,15 +9,16 @@ from glob import glob
 from jinja2 import Environment, FileSystemLoader
 
 def index(root, runs):
-    keep = sorted(runs[-3:])
+    keep = sorted(runs[-10:])
     remove = list(set(runs) - set(keep))
     print(keep)
     for r in remove:
         print('remove dir: ' + r)
-        #shutil.rmtree(r)
+        shutil.rmtree(r)
 
-#    dates = [os.path.basename(os.path.normpath(path)) for path in roots]
-#    runs = sorted([datetime.datetime.fromtimestamp(int(s)).strftime('%Y-%m-%d %H:%M:%S.%f') for s in dates])
+    #dates = [os.path.basename(os.path.normpath(path)) for path in keep]
+    #runs = sorted([datetime.datetime.fromtimestamp(int(s)).strftime('%Y-%m-%d %H:%M:%S.%f') for s in dates])
+    #print(runs)
 
     templates_dir = './visualization/templates/'
     env = Environment( loader = FileSystemLoader(templates_dir) )
@@ -35,7 +36,7 @@ def index(root, runs):
 
 def run(root, runs):
     runs = [{
-        'link': os.path.join('/', os.path.basename(os.path.normpath(root))),
+        'link': os.path.join('../', os.path.basename(os.path.normpath(root))),
         'name': datetime.datetime.fromtimestamp(int(root)).strftime('%Y-%m-%d %H:%M:%S'),
         } for root in runs]
 
