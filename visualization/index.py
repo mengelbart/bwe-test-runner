@@ -9,7 +9,7 @@ from glob import glob
 from jinja2 import Environment, FileSystemLoader
 
 def index(root, runs):
-    keep = sorted(runs[-10:])
+    keep = sorted(runs[-5:])
     remove = list(set(runs) - set(keep))
     print(keep)
     for r in remove:
@@ -75,8 +75,10 @@ def run(root, runs):
     template = env.get_template('run.html')
 
     filename = os.path.join(root, 'index.html')
+    date = datetime.datetime.fromtimestamp(int(os.path.basename(os.path.normpath(root))))
     with open(filename, 'w') as fh:
         fh.write(template.render(
+            date = date,
             runs = runs,
             scenarios = scenarios,
             implementations = implementations,
@@ -86,6 +88,7 @@ def run(root, runs):
 def main():
     roots = glob('./gh-pages/*/')
     index('./gh-pages/', roots)
+    roots = glob('./gh-pages/*/')
 
     for root in roots:
         run(root, [os.path.basename(os.path.normpath(run)) for run in roots])
