@@ -1,5 +1,5 @@
 {
-  "pion": {
+  "pion-gcc": {
     "name": "pion",
     "sender": {
       "href": "",
@@ -8,19 +8,6 @@
     "receiver": {
       "href": "",
       "image": "engelbart/bwe-test-pion-answer"
-    }
-  },
-  "rtp-over-quic": {
-    "name": "rtp-over-quic",
-    "sender": {
-      "href": "",
-      "image": "engelbart/rtp-over-quic:latest",
-      "args": "-codec synthetic -cc scream"
-    },
-    "receiver": {
-      "href": "",
-      "image": "engelbart/rtp-over-quic:latest",
-      "args": "-codec synthetic -cc scream"
     }
   }
 }
