@@ -86,8 +86,8 @@ func init() {
 	}
 
 	runCmd.Flags().Int64VarP(&runDate, "date", "d", time.Now().Unix(), "Unix Timestamp in seconds since epoch")
-	runCmd.Flags().StringVarP(&scenarioFlag, "scenario", "s", "1", fmt.Sprintf("Test case scenario to run (options: %v)", strings.Join(testcaseNames(tc), ", ")))
-	runCmd.Flags().StringVarP(&implementationFlag, "implementation", "i", "pion", fmt.Sprintf("Implementation to run (options: %v)", strings.Join(implementationNames(is), ", ")))
+	runCmd.Flags().StringVarP(&scenarioFlag, "scenario", "s", testcaseNames(tc)[0], fmt.Sprintf("Test case scenario to run (options: %v)", strings.Join(testcaseNames(tc), ", ")))
+	runCmd.Flags().StringVarP(&implementationFlag, "implementation", "i", implementationNames(is)[0], fmt.Sprintf("Implementation to run (options: %v)", strings.Join(implementationNames(is), ", ")))
 }
 
 var runCmd = &cobra.Command{

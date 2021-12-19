@@ -3,11 +3,11 @@
     "name": "pion",
     "sender": {
       "href": "",
-      "image": "engelbart/bwe-test-pion-offer"
+      "image": "engelbart/bwe-test-pion"
     },
     "receiver": {
       "href": "",
-      "image": "engelbart/bwe-test-pion-answer"
+      "image": "engelbart/bwe-test-pion"
     }
   }
 }
