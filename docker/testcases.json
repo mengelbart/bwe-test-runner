@@ -2,10 +2,10 @@
   "1": {
     "name": "1",
     "description": "Variable Available Capacity with a Single Flow",
-    "href": "https://www.rfc-editor.org/rfc/rfc8867.html#section-5.1",
-    "dc_file": "1-docker-compose.yml",
+    "url": "https://www.rfc-editor.org/rfc/rfc8867.html#section-5.1",
+    "compose_file": "1-docker-compose.yml",
     "duration": "100s",
-    "leftrouter": [
+    "left_router": [
       {
 	"duration": "40s",
 	"config": {
@@ -32,6 +32,16 @@
 	  "delay": "50ms",
 	  "jitter": "30ms",
 	  "rate": "600000",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      },
+      {
+	"duration": "20s",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "1000000",
 	  "burst": "10kb",
 	  "latency": "300ms"
 	}
@@ -47,7 +57,7 @@
 	}
       }
     ],
-    "rightrouter": [
+    "right_router": [
       {
 	"duration": "40s",
 	"config": {
@@ -74,6 +84,16 @@
 	  "delay": "50ms",
 	  "jitter": "30ms",
 	  "rate": "600000",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      },
+      {
+	"duration": "20s",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "1000000",
 	  "burst": "10kb",
 	  "latency": "300ms"
 	}
@@ -92,11 +112,11 @@
   },
   "2": {
     "name": "2",
-    "href": "https://www.rfc-editor.org/rfc/rfc8867.html#section-5.2",
+    "url": "https://www.rfc-editor.org/rfc/rfc8867.html#section-5.2",
     "description": "Variable Available Capacity with Multiple Flows",
-    "dc_file": "2-docker-compose.yml",
+    "compose_file": "2-docker-compose.yml",
     "duration": "120s",
-    "leftrouter": [
+    "left_router": [
       {
 	"duration": "25s",
 	"config": {
@@ -133,6 +153,16 @@
 	  "delay": "50ms",
 	  "jitter": "30ms",
 	  "rate": "500000",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      },
+      {
+	"duration": "20s",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "1000000",
 	  "burst": "10kb",
 	  "latency": "300ms"
 	}
@@ -148,7 +178,7 @@
 	}
       }
     ],
-    "rightrouter": [
+    "right_router": [
       {
 	"duration": "25s",
 	"config": {
@@ -185,6 +215,16 @@
 	  "delay": "50ms",
 	  "jitter": "30ms",
 	  "rate": "500000",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      },
+      {
+	"duration": "20s",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "1000000",
 	  "burst": "10kb",
 	  "latency": "300ms"
 	}
@@ -203,11 +243,11 @@
   },
   "3": {
     "name": "3",
-    "href": "https://www.rfc-editor.org/rfc/rfc8867.html#section-5.3",
+    "url": "https://www.rfc-editor.org/rfc/rfc8867.html#section-5.3",
     "description": "Congested Feedback Link with Bi-directional Media Flows",
-    "dc_file": "3-docker-compose.yml",
+    "compose_file": "3-docker-compose.yml",
     "duration": "100s",
-    "leftrouter": [
+    "left_router": [
       {
 	"duration": "20s",
 	"config": {
@@ -239,6 +279,16 @@
 	}
       },
       {
+	"duration": "40s",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "2000000",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      },
+      {
 	"duration": "0",
 	"config": {
 	  "delay": "50ms",
@@ -249,7 +299,7 @@
 	}
       }
     ],
-    "rightrouter": [
+    "right_router": [
       {
 	"duration": "35s",
 	"config": {
@@ -266,6 +316,67 @@
 	  "delay": "50ms",
 	  "jitter": "30ms",
 	  "rate": "800000",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      },
+      {
+	"duration": "30s",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "2000000",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      },
+      {
+	"duration": "0",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "2000000",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      }
+    ]
+  },
+  "6": {
+    "name": "6",
+    "description": "Media Flow Competing with a Long TCP Flow",
+    "url": "https://www.rfc-editor.org/rfc/rfc8867.html#section-5.6",
+    "compose_file": "6-docker-compose.yml",
+    "duration": "130s",
+    "left_router": [
+      {
+	"duration": "120s",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "2000000",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      },
+      {
+	"duration": "0",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "2000000",
+	  "burst": "10kb",
+	  "latency": "300ms"
+	}
+      }
+    ],
+    "right_router": [
+      {
+	"duration": "120s",
+	"config": {
+	  "delay": "50ms",
+	  "jitter": "30ms",
+	  "rate": "2000000",
 	  "burst": "10kb",
 	  "latency": "300ms"
 	}

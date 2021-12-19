@@ -1,0 +1,121 @@
+version: "3.8"
+
+services:
+  leftrouter:
+    build: ./router
+    image: engelbart/router
+    tty: true
+    command: bash
+    container_name: leftrouter
+    networks:
+      sharednet:
+        ipv4_address: 172.25.0.2
+      leftnet:
+        ipv4_address: 172.26.0.2
+    cap_add:
+      - NET_ADMIN
+
+  rightrouter:
+    build: ./router
+    image: engelbart/router
+    tty: true
+    command: bash
+    container_name: rightrouter
+    networks:
+      sharednet:
+        ipv4_address: 172.25.0.3
+      rightnet:
+        ipv4_address: 172.27.0.2
+    cap_add:
+      - NET_ADMIN
+
+  sender_a:
+    image: $SENDER_A
+    tty: true
+    container_name: sender_a
+    hostname: sender_a
+    environment:
+      ROLE: 'sender'
+      ARGS: $SENDER_A_ARGS
+      RECEIVER: '172.27.0.3'
+    volumes:
+      - ./output/a/send_log:/log
+      - ./input:/input:ro
+    networks:
+      leftnet:
+        ipv4_address: 172.26.0.3
+    cap_add:
+      - NET_ADMIN
+
+  receiver_a:
+    image: $RECEIVER_A
+    tty: true
+    container_name: receiver_a
+    hostname: receiver_a
+    environment:
+      ROLE: 'receiver'
+      ARGS: $RECEIVER_A_ARGS
+      SENDER: '172.26.0.3'
+    volumes:
+      - ./output/a/receive_log:/log
+      - ./output/a/output:/output
+    networks:
+      rightnet:
+        ipv4_address: 172.27.0.3
+    cap_add:
+      - NET_ADMIN
+
+  tcp_sender:
+    image: engelbart/endpoint
+    tty: true
+    container_name: tcp_sender
+    hostname: tcp_sender
+    environment:
+      ARGS: 
+      ROLE: 'sender'
+      RECEIVER: '172.27.0.4'
+    volumes:
+      - ./output/tcp/send_log:/log
+    networks:
+      leftnet:
+        ipv4_address: 172.26.0.4
+    cap_add:
+      - NET_ADMIN
+    entrypoint: /iperf.sh -i 0.2 -C cubic -J --logfile /log/tcp.log -t 120
+
+  tcp_receiver:
+    image: engelbart/endpoint
+    tty: true
+    container_name: tcp_receiver
+    hostname: tcp_receiver
+    environment:
+      ROLE: 'receiver'
+      SENDER: '172.26.0.4'
+    volumes:
+      - ./output/tcp/receive_log:/log
+    networks:
+      rightnet:
+        ipv4_address: 172.27.0.4
+    cap_add:
+      - NET_ADMIN
+    entrypoint: /iperf.sh -1 -i 0.2 -J --logfile /log/tcp.log
+
+networks:
+  sharednet:
+    name: sharednet
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.25.0.0/16
+  leftnet:
+    name: leftnet
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.26.0.0/16
+  rightnet:
+    name: rightnet
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.27.0.0/16

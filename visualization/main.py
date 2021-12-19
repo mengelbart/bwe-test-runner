@@ -10,71 +10,6 @@ from pathlib import Path
 from matplotlib.ticker import EngFormatter
 from jinja2 import Environment, FileSystemLoader
 
-def plot_rates(subdir, sender, plot_path):
-    lr_df = pd.read_csv(
-        os.path.join(subdir, 'router.log'),
-        index_col = 0,
-        names = ['time', 'bandwidth'],
-        header = None,
-        usecols = [0, 1],
-    )
-    lr_df.index = pd.to_datetime(lr_df.index - lr_df.index[0], unit='ms')
-
-    cc_df = pd.read_csv(
-        os.path.join(subdir, 'send_log/cc.log'),
-        index_col = 0,
-        names = ['time', 'target bitrate'],
-        header = None,
-        usecols = [0, 1],
-    )
-    cc_df.index = pd.to_datetime(cc_df.index - cc_df.index[0], unit='ms')
-    cc_df = cc_df[cc_df['target bitrate'] > 0]
-
-    # Hack to extend bandwidth limit step function plot until $cc_df.index.max() (end of plot)
-    lr_last = lr_df.iloc[[-1]]
-    lr_df = lr_df.append(lr_last)
-    as_list = lr_df.index.tolist()
-    as_list[-1] = cc_df.index.max()
-    lr_df.index = as_list
-
-    rtp_out_df = pd.read_csv(
-        os.path.join(subdir, 'send_log/rtp_out.log'),
-        index_col = 0,
-        names = ['time', 'RTP bit/s sent'],
-        header = None,
-        usecols = [0, 6],
-    )
-    rtp_out_df.index = pd.to_datetime(rtp_out_df.index - rtp_out_df.index[0], unit='ms')
-    rtp_out_df['RTP bit/s sent'] = rtp_out_df['RTP bit/s sent'].apply(lambda x: x * 8)
-    rtp_out_df = rtp_out_df.resample('1s').sum()
-
-    rtp_in_df = pd.read_csv(
-        os.path.join(subdir, 'receive_log/rtp_in.log'),
-        index_col = 0,
-        names = ['time', 'RTP bit/s received'],
-        header = None,
-        usecols = [0, 6],
-    )
-    rtp_in_df.index = pd.to_datetime(rtp_in_df.index - rtp_in_df.index[0], unit='ms')
-    rtp_in_df['RTP bit/s received'] = rtp_in_df['RTP bit/s received'].apply(lambda x: x * 8)
-    rtp_in_df = rtp_in_df.resample('1s').sum()
-
-
-    fig, ax = plt.subplots(figsize=(8,2), dpi=400)
-
-    l2, = ax.plot(rtp_out_df.index, rtp_out_df.values, label='RTP sent')
-    l3, = ax.plot(rtp_in_df.index, rtp_in_df.values, label='RTP received')
-    l1, = ax.plot(cc_df.index, cc_df.values, label='Target Bitrate')
-    l0, = ax.step(lr_df.index, lr_df.values, where='post', label='Bandwidth')
-
-    plt.xlabel('time')
-    plt.ylabel('rate')
-    ax.legend(handles=[l0, l1, l2, l3])
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
-    ax.yaxis.set_major_formatter(EngFormatter(unit='bit/s'))
-
-    plt.savefig(os.path.join(plot_path, sender + '-plot.png'))
-
 def generate_html(path):
     templates_dir = './visualization/templates/'
     env = Environment( loader = FileSystemLoader(templates_dir) )
@@ -88,7 +23,124 @@ def filter_empty(dir, content):
     return [path for path in content if os.path.isdir(os.path.join(dir, path))
             and len(os.listdir(os.path.join(dir, path))) == 0]
 
+class rates_plot:
+    def __init__(self, name):
+        self.name = name
+        self.labels = []
+        self.fig, self.ax = plt.subplots(figsize=(8,2), dpi=400)
+
+    def add_rtp(self, file, basetime, label):
+        if not os.path.exists(file):
+            return False
+        df = pd.read_csv(
+                file,
+                index_col = 0,
+                names = ['time', 'rate'],
+                header = None,
+                usecols = [0, 6],
+            )
+        df.index = pd.to_datetime(df.index - basetime, unit='ms')
+        df['rate'] = df['rate'].apply(lambda x: x * 8)
+        df = df.resample('1s').sum()
+        l, = self.ax.plot(df.index, df.values, label=label)
+        self.labels.append(l)
+        return True
+
+    def add_cc(self, file, basetime):
+        if not os.path.exists(file):
+            return False
+        df = pd.read_csv(
+                file,
+                index_col = 0,
+                names = ['time', 'target'],
+                header = None,
+                usecols = [0, 1],
+            )
+        df.index = pd.to_datetime(df.index - basetime, unit='ms')
+        df = df[df['target'] > 0]
+        l, = self.ax.plot(df.index, df.values, label='Target Bitrate')
+        self.labels.append(l)
+        return True
+
+    def add_router(self, file, basetime):
+        if not os.path.exists(file):
+            return False
+
+        df = pd.read_csv(
+                file,
+                index_col = 0,
+                names = ['time', 'bandwidth'],
+                header = None,
+                usecols = [0, 1],
+            )
+        df.index = pd.to_datetime(df.index - basetime, unit='ms')
+        l, = self.ax.step(df.index, df.values, where='post', label='Bandwidth')
+        self.labels.append(l)
+        return True
+
+    def plot(self, path):
+        plt.xlabel('time')
+        plt.ylabel('rate')
+        self.ax.legend(handles=self.labels)
+        self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
+        self.ax.yaxis.set_major_formatter(EngFormatter(unit='bit/s'))
+
+        plt.savefig(os.path.join(path, self.name + '-plot.png'))
+
+class tcp_plot:
+    def __init__(self, name):
+        self.name = name
+        self.fig, self.ax = plt.subplots(figsize=(8,2), dpi=400)
+        self.labels = []
+
+    def add_router(self, file, basetime):
+        if not os.path.exists(file):
+            return False
+
+        df = pd.read_csv(
+                file,
+                index_col = 0,
+                names = ['time', 'bandwidth'],
+                header = None,
+                usecols = [0, 1],
+            )
+        df.index = pd.to_datetime(df.index - basetime, unit='ms')
+        l, = self.ax.step(df.index, df.values, where='post', label='Bandwidth')
+        self.labels.append(l)
+        return True
+
+    def add(self, file, label):
+        if not os.path.exists(file):
+            return False
+
+        with open(file) as data_file:
+            data = json.load(data_file)
+
+        df = pd.json_normalize(data, record_path='intervals')
+        df.index = pd.to_datetime(df['sum.start'], unit='s')
+        df = df.resample('1s').mean()
+
+        l, = self.ax.plot(df.index, df['sum.bits_per_second'], label=label, linewidth=0.5)
+        self.labels.append(l)
+        return True
+
+    def plot(self, path):
+        plt.xlabel('Time')
+        plt.ylabel('Rate')
+
+        self.ax.legend(handles=self.labels)
+        self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
+        self.ax.yaxis.set_major_formatter(EngFormatter(unit='bit/s'))
+
+        plt.savefig(os.path.join(path, self.name + '-plot.png'))
+
+
+
 def main():
+    sources = ['a', 'b', 'c']
+    output_dir = 'output'
+    html_dir = 'html'
+
     with open('output/config.json') as config_file:
         config = json.load(config_file)
 
@@ -96,22 +148,51 @@ def main():
     implementation = config['implementation']['name']
     testcase = config['scenario']['name']
 
-    path = os.path.join('html', run_id, implementation, testcase)
+    path = os.path.join(html_dir, run_id, implementation, testcase)
     Path(path).mkdir(parents=True, exist_ok=True)
 
-    match testcase:
-        case "1":
-            plot_rates('output/a', 'a', path)
-            generate_html(path)
-            copytree('output', os.path.join(path, 'log'), ignore=filter_empty)
-        case ("2"|"3"):
-            plot_rates('output/a', 'a', path)
-            plot_rates('output/b', 'b', path)
-            generate_html(path)
-            copytree('output', os.path.join(path, 'log'))
-        case _:
-            print('invalid scenario')
+    copytree('output', os.path.join(path, 'log'), ignore=filter_empty)
+    generate_html(path)
 
+    basetime = pd.to_datetime(run_id, unit='s').timestamp() * 1000
+
+    for source in sources:
+        dir = os.path.join(output_dir, source)
+        if os.path.isdir(dir):
+            plot = rates_plot(source)
+
+            found_log = False
+            if plot.add_cc(os.path.join(dir, 'send_log', 'cc.log'), basetime):
+                found_log = True
+
+            if plot.add_rtp(os.path.join(dir, 'send_log',
+                'rtp_out.log'), basetime, 'RTP received'):
+                found_log = True
+
+            if plot.add_rtp(os.path.join(dir, 'receive_log',
+                'rtp_in.log'), basetime, 'RTP sent'):
+                found_log = True
+
+            if found_log:
+                plot.add_router('output/leftrouter.log', basetime)
+                plot.plot(os.path.join(path))
+
+    tcp_receive_log = os.path.join(output_dir, 'tcp', 'receive_log', 'tcp.log')
+    tcp_send_log = os.path.join(output_dir, 'tcp', 'send_log', 'tcp.log')
+    tcp = tcp_plot('tcp')
+    found_tcp = False
+    if tcp.add(tcp_receive_log, 'TCP received'):
+        found_tcp = True
+    else:
+        print("NO RECEIVELOG: " + tcp_receive_log)
+    if tcp.add(tcp_send_log, 'TCP sent'):
+        found_tcp = True
+    else:
+        print("NO SENDLOG: " + tcp_send_log)
+
+    if found_tcp:
+        tcp.add_router('output/leftrouter.log', basetime)
+        tcp.plot(path)
 
 if __name__ == "__main__":
     main()

@@ -1,7 +1,8 @@
-package cmd
+package docker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -13,14 +14,19 @@ import (
 	"github.com/docker/docker/client"
 )
 
+// tsTimeout is the time to wait for containers to spin up before timing out
+const tsTimeout = 5 * time.Minute
+
+var errTrafficShaperTimeout = errors.New("traffic shaper timed out while waiting for containers to spin up")
+
 type TrafficShaper struct {
-	log       io.Writer
+	log       io.WriteCloser
 	container string
 	iface     string
 	phases    []tcPhase
 }
 
-func newTrafficShaper(ctx context.Context, name string, phases []tcPhase, log io.Writer) (*TrafficShaper, error) {
+func newTrafficShaper(ctx context.Context, name string, phases []tcPhase, log io.WriteCloser) (*TrafficShaper, error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return nil, err
@@ -53,19 +59,26 @@ func newTrafficShaper(ctx context.Context, name string, phases []tcPhase, log io
 
 func (s *TrafficShaper) run(ctx context.Context) error {
 	log.Printf("run traffic shaper: '%v'/'%v'\n", s.container, s.iface)
+	var lastRate string
+	defer func() {
+		now := time.Now()
+		fmt.Fprintf(s.log, "%v, %v\n", now.UnixMilli(), lastRate)
+		s.log.Close()
+	}()
 	if len(s.phases) == 0 {
 		return nil
 	}
 	for i, p := range s.phases {
+		lastRate = p.Config.Rate
+		fmt.Fprintf(s.log, "%v, %v\n", time.Now().UnixMilli(), lastRate)
 		err := p.Config.apply(s.container, s.iface, i == 0)
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(s.log, "%v, %v\n", time.Now().UnixMilli(), p.Config.Rate)
+
 		if p.Duration.Duration == 0 {
 			return nil
 		}
-
 		select {
 		case <-ctx.Done():
 			return nil

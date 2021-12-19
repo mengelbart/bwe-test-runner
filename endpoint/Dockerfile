@@ -13,5 +13,8 @@ RUN apt-get update && \
 COPY setup.sh .
 RUN chmod +x setup.sh
 
+COPY iperf.sh .
+RUN chmod +x iperf.sh
+
 ENTRYPOINT [ "./setup.sh" ]
 
