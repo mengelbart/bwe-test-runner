@@ -27,19 +27,19 @@ jobs:
       - name: Set implementations
         id: set-implementations
         run: |
-          IMPLEMENTATIONS=$(jq -c 'keys_unsorted' cmd/implementations.json)
+          IMPLEMENTATIONS=$(jq -c 'keys_unsorted' docker/implementations.json)
           echo $IMPLEMENTATIONS
           echo "::set-output name=implementations::$IMPLEMENTATIONS"
       - name: Set testcases
         id: set-testcases
         run: |
-          TESTCASES=$(jq -c 'keys_unsorted' cmd/testcases.json)
+          TESTCASES=$(jq -c 'keys_unsorted' docker/testcases.json)
           echo $TESTCASES
           echo "::set-output name=testcases::$TESTCASES"
       - name: Set images
         id: set-images
         run: |
-          IMAGES=$(jq -c 'map(.sender.image) + map(.receiver.image) | unique' cmd/implementations.json)
+          IMAGES=$(jq -c 'map(.sender.image) + map(.receiver.image) | unique' docker/implementations.json)
           echo $IMAGES
           echo "::set-output name=images::$IMAGES"
 
