@@ -23,6 +23,53 @@ def filter_empty(dir, content):
     return [path for path in content if os.path.isdir(os.path.join(dir, path))
             and len(os.listdir(os.path.join(dir, path))) == 0]
 
+class gcc_plot:
+    def __init__(self, name):
+        self.name = name
+        self.labels1 = []
+        self.fig1, self.ax1 = plt.subplots(figsize=(8,2), dpi=400)
+        self.labels2 = []
+        self.fig2, self.ax2 = plt.subplots(figsize=(8,2), dpi=400)
+
+    def add_metrics(self, file, basetime):
+        if not os.path.exists(file):
+            return False
+        df = pd.read_csv(
+                file,
+                index_col = 0,
+                names = ['time', 'bitrate', 'loss', 'delay', 'estimate', 'threshold', 'rtt'],
+                header = None,
+                usecols = [0, 1, 2, 3, 4, 5, 6],
+            )
+        df.index = pd.to_datetime(df.index - basetime, unit='ms')
+
+        l0, = self.ax1.plot(df.index, df['estimate'], label='Estimate', linewidth=0.5)
+        l1, = self.ax1.plot(df.index, df['threshold'], label='Threshold', linewidth=0.5)
+        l2, = self.ax1.plot(df.index, -df['threshold'], label='-Threshold', linewidth=0.5)
+        self.labels1.append(l0)
+        self.labels1.append(l1)
+        self.labels1.append(l2)
+
+        l3, = self.ax2.plot(df.index, df['rtt'], label='RTT', linewidth=0.5)
+        self.labels2.append(l3)
+        return True
+
+    def plot(self, path):
+        self.ax1.axhline(y=0, color='k')
+        self.ax1.legend(handles=self.labels1)
+        plt.xlabel('time')
+        plt.ylabel('delay')
+        self.ax1.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
+        self.ax1.yaxis.set_major_formatter(EngFormatter(unit='ms'))
+        self.fig1.savefig(os.path.join(path, self.name + '-metrics-plot.png'))
+
+        plt.xlabel('time')
+        plt.ylabel('rtt')
+        self.ax2.legend(handles=self.labels2)
+        self.ax2.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
+        self.ax2.yaxis.set_major_formatter(EngFormatter(unit='ms'))
+        self.fig2.savefig(os.path.join(path, self.name + '-rtt-plot.png'))
+
 class rates_plot:
     def __init__(self, name):
         self.name = name
@@ -134,8 +181,6 @@ class tcp_plot:
 
         plt.savefig(os.path.join(path, self.name + '-plot.png'))
 
-
-
 def main():
     output_dir = 'output'
     html_dir = 'html'
@@ -163,7 +208,9 @@ def main():
             plot = rates_plot(source)
 
             found_log = False
-            if plot.add_cc(os.path.join(dir, 'send_log', 'cc.log'), basetime):
+            found_gcc = plot.add_cc(os.path.join(dir, 'send_log', 'gcc.log'), basetime)
+            found_scream = plot.add_cc(os.path.join(dir, 'send_log', 'scream.log'), basetime)
+            if found_gcc or found_scream:
                 found_log = True
 
             if plot.add_rtp(os.path.join(dir, 'send_log',
@@ -177,7 +224,15 @@ def main():
             if found_log:
                 router = implementation['router']
                 plot.add_router(os.path.join(output_dir, router), basetime, router)
-                plot.plot(os.path.join(path))
+                plot.plot(path)
+
+            found_gcc_log = False
+            gcc = gcc_plot(source)
+            if gcc.add_metrics(os.path.join(dir, 'send_log', 'gcc.log'), basetime):
+                found_gcc_log = True
+
+            if found_gcc_log:
+                gcc.plot(path)
 
     tcp_receive_log = os.path.join(output_dir, 'tcp', 'receive_log', 'tcp.log')
     tcp_send_log = os.path.join(output_dir, 'tcp', 'send_log', 'tcp.log')
