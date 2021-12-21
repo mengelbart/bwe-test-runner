@@ -137,7 +137,6 @@ class tcp_plot:
 
 
 def main():
-    sources = ['a', 'b', 'c']
     output_dir = 'output'
     html_dir = 'html'
 
@@ -145,18 +144,20 @@ def main():
         config = json.load(config_file)
 
     run_id = str(config['date'])
-    implementation = config['implementation']['name']
+    implementations = config['implementations']
     testcase = config['scenario']['name']
 
-    path = os.path.join(html_dir, run_id, implementation, testcase)
-    Path(path).mkdir(parents=True, exist_ok=True)
+    for implementation in implementations:
 
-    copytree('output', os.path.join(path, 'log'), ignore=filter_empty)
-    generate_html(path)
+        path = os.path.join(html_dir, run_id, implementation['name'], testcase)
+        Path(path).mkdir(parents=True, exist_ok=True)
 
-    basetime = pd.to_datetime(run_id, unit='s').timestamp() * 1000
+        copytree('output', os.path.join(path, 'log'), ignore=filter_empty)
+        generate_html(path)
 
-    for source in sources:
+        basetime = pd.to_datetime(run_id, unit='s').timestamp() * 1000
+
+        source = implementation['source']
         dir = os.path.join(output_dir, source)
         if os.path.isdir(dir):
             plot = rates_plot(source)
@@ -174,8 +175,8 @@ def main():
                 found_log = True
 
             if found_log:
-                plot.add_router('output/leftrouter.log', basetime, 'Left')
-                plot.add_router('output/rightrouter.log', basetime, 'Right')
+                router = implementation['router']
+                plot.add_router(os.path.join(output_dir, router), basetime, router)
                 plot.plot(os.path.join(path))
 
     tcp_receive_log = os.path.join(output_dir, 'tcp', 'receive_log', 'tcp.log')
@@ -184,12 +185,8 @@ def main():
     found_tcp = False
     if tcp.add(tcp_receive_log, 'TCP received'):
         found_tcp = True
-    else:
-        print("NO RECEIVELOG: " + tcp_receive_log)
     if tcp.add(tcp_send_log, 'TCP sent'):
         found_tcp = True
-    else:
-        print("NO SENDLOG: " + tcp_send_log)
 
     if found_tcp:
         tcp.add_router('output/leftrouter.log', basetime)

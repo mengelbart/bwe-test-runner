@@ -5,6 +5,9 @@
     "url": "https://www.rfc-editor.org/rfc/rfc8867.html#section-5.1",
     "compose_file": "1-docker-compose.yml",
     "duration": "100s",
+    "router_map": {
+      "a": "leftrouter.log"
+    },
     "left_router": [
       {
 	"duration": "40s",
@@ -116,6 +119,10 @@
     "description": "Variable Available Capacity with Multiple Flows",
     "compose_file": "2-docker-compose.yml",
     "duration": "120s",
+    "router_map": {
+      "a": "leftrouter.log",
+      "b": "leftrouter.log"
+    },
     "left_router": [
       {
 	"duration": "25s",
@@ -247,6 +254,10 @@
     "description": "Congested Feedback Link with Bi-directional Media Flows",
     "compose_file": "3-docker-compose.yml",
     "duration": "100s",
+    "router_map": {
+      "a": "leftrouter.log",
+      "b": "rightrouter.log"
+    },
     "left_router": [
       {
 	"duration": "20s",
@@ -348,6 +359,10 @@
     "url": "https://www.rfc-editor.org/rfc/rfc8867.html#section-5.6",
     "compose_file": "6-docker-compose.yml",
     "duration": "130s",
+    "router_map": {
+      "a": "leftrouter.log",
+      "tcp": "leftrouter.log"
+    },
     "left_router": [
       {
 	"duration": "120s",

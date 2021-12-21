@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -17,13 +16,14 @@ import (
 )
 
 type testcase struct {
-	Name        string          `json:"name"`
-	Description string          `json:"description"`
-	URL         string          `json:"url"`
-	ComposeFile string          `json:"compose_file"`
-	Duration    common.Duration `json:"duration"`
-	LeftRouter  []tcPhase       `json:"left_router"`
-	RightRouter []tcPhase       `json:"right_router"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	URL         string            `json:"url"`
+	ComposeFile string            `json:"compose_file"`
+	Duration    common.Duration   `json:"duration"`
+	RouterMap   map[string]string `json:"router_map"`
+	LeftRouter  []tcPhase         `json:"left_router"`
+	RightRouter []tcPhase         `json:"right_router"`
 }
 
 type implementations []implementation
@@ -74,16 +74,17 @@ func NewBasic(date int64, testcaseNames string, implementationNames []string) co
 }
 
 func (d *Basic) dumpConfig() error {
-	names := []string{}
-	for _, i := range d.implementations {
-		names = append(names, i.Name)
+	impls := []common.Implementation{}
+	for j, i := range d.implementations {
+		impls = append(impls, common.Implementation{
+			Name:   i.Name,
+			Router: d.RouterMap[string('a'+j)],
+			Source: string('a' + j),
+		})
 	}
-	ci := strings.Join(names, "-")
 	config := common.Config{
-		Date: d.Date,
-		Implementation: common.Implementation{
-			Name: ci,
-		},
+		Date:            d.Date,
+		Implementations: impls,
 		Scenario: common.Scenario{
 			Name:        d.Name,
 			Description: d.Description,
