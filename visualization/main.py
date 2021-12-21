@@ -42,7 +42,7 @@ class rates_plot:
         df.index = pd.to_datetime(df.index - basetime, unit='ms')
         df['rate'] = df['rate'].apply(lambda x: x * 8)
         df = df.resample('1s').sum()
-        l, = self.ax.plot(df.index, df.values, label=label)
+        l, = self.ax.plot(df.index, df.values, label=label, linewidth=0.5)
         self.labels.append(l)
         return True
 
@@ -58,11 +58,11 @@ class rates_plot:
             )
         df.index = pd.to_datetime(df.index - basetime, unit='ms')
         df = df[df['target'] > 0]
-        l, = self.ax.plot(df.index, df.values, label='Target Bitrate')
+        l, = self.ax.plot(df.index, df.values, label='Target Bitrate', linewidth=0.5)
         self.labels.append(l)
         return True
 
-    def add_router(self, file, basetime):
+    def add_router(self, file, basetime, label):
         if not os.path.exists(file):
             return False
 
@@ -74,7 +74,7 @@ class rates_plot:
                 usecols = [0, 1],
             )
         df.index = pd.to_datetime(df.index - basetime, unit='ms')
-        l, = self.ax.step(df.index, df.values, where='post', label='Bandwidth')
+        l, = self.ax.step(df.index, df.values, where='post', label=label + ' Bandwidth', linewidth=0.5)
         self.labels.append(l)
         return True
 
@@ -105,7 +105,7 @@ class tcp_plot:
                 usecols = [0, 1],
             )
         df.index = pd.to_datetime(df.index - basetime, unit='ms')
-        l, = self.ax.step(df.index, df.values, where='post', label='Bandwidth')
+        l, = self.ax.step(df.index, df.values, where='post', label='Bandwidth', linewidth=0.5)
         self.labels.append(l)
         return True
 
@@ -166,15 +166,16 @@ def main():
                 found_log = True
 
             if plot.add_rtp(os.path.join(dir, 'send_log',
-                'rtp_out.log'), basetime, 'RTP received'):
+                'rtp_out.log'), basetime, 'RTP sent'):
                 found_log = True
 
             if plot.add_rtp(os.path.join(dir, 'receive_log',
-                'rtp_in.log'), basetime, 'RTP sent'):
+                'rtp_in.log'), basetime, 'RTP received'):
                 found_log = True
 
             if found_log:
-                plot.add_router('output/leftrouter.log', basetime)
+                plot.add_router('output/leftrouter.log', basetime, 'Left')
+                plot.add_router('output/rightrouter.log', basetime, 'Right')
                 plot.plot(os.path.join(path))
 
     tcp_receive_log = os.path.join(output_dir, 'tcp', 'receive_log', 'tcp.log')
