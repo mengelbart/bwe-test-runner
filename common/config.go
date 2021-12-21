@@ -1,15 +1,15 @@
 package common
 
 type Config struct {
-	Date            int64            `json:"date"`
-	Implementations []Implementation `json:"implementations"`
-	Scenario        Scenario         `json:"scenario"`
+	Date        int64        `json:"date"`
+	Connections []Connection `json:"connections"`
+	Scenario    Scenario     `json:"scenario"`
 }
 
-type Implementation struct {
-	Name   string `json:"name"`
-	Router string `json:"router"`
-	Source string `json:"source"`
+type Connection struct {
+	Name           string `json:"name"`
+	Router         string `json:"router"`
+	Implementation string `json:"implementation"`
 }
 
 type Scenario struct {

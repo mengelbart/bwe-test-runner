@@ -16,7 +16,7 @@ var (
 	runDate            int64
 	runnerFlag         string
 	scenarioFlag       string
-	implementationFlag []string
+	implementationFlag string
 )
 
 var runnersMap = map[string]common.RunnerFactory{
@@ -47,7 +47,7 @@ func init() {
 	runCmd.Flags().Int64VarP(&runDate, "date", "d", time.Now().Unix(), "Unix Timestamp in seconds since epoch")
 	runCmd.Flags().StringVarP(&runnerFlag, "runner", "r", runners()[0], fmt.Sprintf("Test case scenario to run (options: %v)", strings.Join(runners(), ", ")))
 	runCmd.Flags().StringVarP(&scenarioFlag, "scenario", "s", "1", "Scenario to run")
-	runCmd.Flags().StringSliceVarP(&implementationFlag, "implementations", "i", []string{"pion-gcc"}, "Implementations to run")
+	runCmd.Flags().StringVarP(&implementationFlag, "implementation", "i", "pion-gcc", "Implementation to run")
 }
 
 var errInvalidRunner = errors.New("invalid runner")

@@ -189,12 +189,12 @@ def main():
         config = json.load(config_file)
 
     run_id = str(config['date'])
-    implementations = config['implementations']
+    connections = config['connections']
     testcase = config['scenario']['name']
 
-    for implementation in implementations:
+    for connection in connections:
 
-        path = os.path.join(html_dir, run_id, implementation['name'], testcase)
+        path = os.path.join(html_dir, run_id, connection['name'], testcase)
         Path(path).mkdir(parents=True, exist_ok=True)
 
         copytree('output', os.path.join(path, 'log'), ignore=filter_empty)
@@ -202,7 +202,7 @@ def main():
 
         basetime = pd.to_datetime(run_id, unit='s').timestamp() * 1000
 
-        source = implementation['source']
+        source = connection['name']
         dir = os.path.join(output_dir, source)
         if os.path.isdir(dir):
             plot = rates_plot(source)
@@ -222,7 +222,7 @@ def main():
                 found_log = True
 
             if found_log:
-                router = implementation['router']
+                router = connection['router']
                 plot.add_router(os.path.join(output_dir, router), basetime, router)
                 plot.plot(path)
 

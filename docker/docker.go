@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -25,8 +26,6 @@ type testcase struct {
 	LeftRouter  []tcPhase         `json:"left_router"`
 	RightRouter []tcPhase         `json:"right_router"`
 }
-
-type implementations []implementation
 
 type implementation struct {
 	Name     string   `json:"name"`
@@ -57,36 +56,32 @@ func init() {
 type Basic struct {
 	Date int64
 	testcase
-	implementations
+	implementation
 }
 
-func NewBasic(date int64, testcaseNames string, implementationNames []string) common.Runner {
-	is := implementations{}
-	for _, in := range implementationNames {
-		is = append(is, availableImplementations[in])
-	}
+func NewBasic(date int64, testcaseName string, implementationName string) common.Runner {
 	b := &Basic{
-		Date:            date,
-		testcase:        availableTestcases[testcaseNames],
-		implementations: is,
+		Date:           date,
+		testcase:       availableTestcases[testcaseName],
+		implementation: availableImplementations[implementationName],
 	}
 	return b
 }
 
 func (d *Basic) dumpConfig() error {
-	impls := []common.Implementation{}
-	for j, i := range d.implementations {
-		impls = append(impls, common.Implementation{
-			Name:   i.Name,
-			Router: d.RouterMap[string('a'+j)],
-			Source: string('a' + j),
+	conns := []common.Connection{}
+	for k, r := range d.RouterMap {
+		conns = append(conns, common.Connection{
+			Name:           k,
+			Router:         r,
+			Implementation: d.implementation.Name,
 		})
 	}
 	config := common.Config{
-		Date:            d.Date,
-		Implementations: impls,
+		Date:        d.Date,
+		Connections: conns,
 		Scenario: common.Scenario{
-			Name:        d.Name,
+			Name:        d.testcase.Name,
 			Description: d.Description,
 			URL:         d.URL,
 		},
@@ -108,12 +103,11 @@ func (d *Basic) Run() error {
 		leftRouterLogFile  = "output/leftrouter.log"
 		rightRouterLogFile = "output/rightrouter.log"
 	)
-	for i := range d.implementations {
+	for k := range d.RouterMap {
 		for _, path := range []string{
 			"send_log", "receive_log", "output",
 		} {
-			letter := string('a' + i)
-			dir := fmt.Sprintf("output/%v/%v", letter, path)
+			dir := fmt.Sprintf("output/%v/%v", k, path)
 			if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 				return err
 			}
@@ -133,12 +127,12 @@ func (d *Basic) Run() error {
 	// Use host env
 	upCMD.Env = os.Environ()
 
-	for l, i := range d.implementations {
-		letter := string('A' + l)
-		upCMD.Env = append(upCMD.Env, fmt.Sprintf("SENDER_%v=%v", letter, i.Sender.Image))
-		upCMD.Env = append(upCMD.Env, fmt.Sprintf("SENDER_%v_ARGS=%v", letter, i.Sender.Args))
-		upCMD.Env = append(upCMD.Env, fmt.Sprintf("RECEIVER_%v=%v", letter, i.Receiver.Image))
-		upCMD.Env = append(upCMD.Env, fmt.Sprintf("RECEIVER_%v_ARGS=%v", letter, i.Receiver.Args))
+	for l := range d.RouterMap {
+		u := strings.ToUpper(l)
+		upCMD.Env = append(upCMD.Env, fmt.Sprintf("SENDER_%v=%v", u, d.Sender.Image))
+		upCMD.Env = append(upCMD.Env, fmt.Sprintf("SENDER_%v_ARGS=%v", u, d.Sender.Args))
+		upCMD.Env = append(upCMD.Env, fmt.Sprintf("RECEIVER_%v=%v", u, d.Receiver.Image))
+		upCMD.Env = append(upCMD.Env, fmt.Sprintf("RECEIVER_%v_ARGS=%v", u, d.Receiver.Args))
 	}
 	if err := upCMD.Start(); err != nil {
 		return err
