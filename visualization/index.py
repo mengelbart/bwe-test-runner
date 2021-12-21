@@ -11,14 +11,8 @@ from jinja2 import Environment, FileSystemLoader
 def index(root, runs):
     keep = sorted(runs[-5:])
     remove = list(set(runs) - set(keep))
-    print(keep)
     for r in remove:
-        print('remove dir: ' + r)
         shutil.rmtree(r)
-
-    #dates = [os.path.basename(os.path.normpath(path)) for path in keep]
-    #runs = sorted([datetime.datetime.fromtimestamp(int(s)).strftime('%Y-%m-%d %H:%M:%S.%f') for s in dates])
-    #print(runs)
 
     templates_dir = './visualization/templates/'
     env = Environment( loader = FileSystemLoader(templates_dir) )
@@ -29,10 +23,6 @@ def index(root, runs):
         fh.write(template.render(
             href = os.path.basename(os.path.normpath(keep[-1])),
             ))
-    
-
-
-
 
 def run(root, runs):
     runs = [{
@@ -40,10 +30,10 @@ def run(root, runs):
         'name': datetime.datetime.fromtimestamp(int(root)).strftime('%Y-%m-%d %H:%M:%S'),
         } for root in runs]
 
-    with open('cmd/testcases.json') as scenario_file:
+    with open('docker/testcases.json') as scenario_file:
         scenario_config = json.load(scenario_file)
 
-    with open('cmd/implementations.json') as implementation_file:
+    with open('docker/implementations.json') as implementation_file:
         implementation_config = json.load(implementation_file)
 
     implementation_names = {os.path.basename(os.path.normpath(path)) for path in glob(root + '/*/')}
@@ -51,7 +41,7 @@ def run(root, runs):
 
     scenarios = sorted([{
         'id': int(scenario),
-        'href': scenario_config[scenario]['href'],
+        'href': scenario_config[scenario]['url'],
         'description': scenario_config[scenario]['description']
         } for scenario in scenario_names], key=lambda d: d['id'])
 
@@ -88,7 +78,6 @@ def run(root, runs):
 def main():
     roots = glob('./gh-pages/*/')
     index('./gh-pages/', roots)
-    roots = glob('./gh-pages/*/')
 
     for root in roots:
         run(root, [os.path.basename(os.path.normpath(run)) for run in roots])
