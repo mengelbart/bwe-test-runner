@@ -194,7 +194,7 @@ def main():
 
     for connection in connections:
 
-        path = os.path.join(html_dir, run_id, connection['name'], testcase)
+        path = os.path.join(html_dir, run_id, connection['implementation'], testcase)
         Path(path).mkdir(parents=True, exist_ok=True)
 
         copytree('output', os.path.join(path, 'log'), ignore=filter_empty)

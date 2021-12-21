@@ -1,6 +1,6 @@
 {
   "pion-gcc": {
-    "name": "pion",
+    "name": "pion-gcc",
     "sender": {
       "href": "",
       "image": "engelbart/bwe-test-pion"
