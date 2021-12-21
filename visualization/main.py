@@ -197,7 +197,6 @@ def main():
         path = os.path.join(html_dir, run_id, connection['implementation'], testcase)
         Path(path).mkdir(parents=True, exist_ok=True)
 
-        copytree('output', os.path.join(path, 'log'), ignore=filter_empty)
         generate_html(path)
 
         basetime = pd.to_datetime(run_id, unit='s').timestamp() * 1000
