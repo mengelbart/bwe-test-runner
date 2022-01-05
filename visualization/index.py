@@ -9,7 +9,7 @@ from glob import glob
 from jinja2 import Environment, FileSystemLoader
 
 def index(root, runs):
-    keep = sorted(runs[-5:])
+    keep = sorted(runs)[-5:]
     remove = list(set(runs) - set(keep))
     for r in remove:
         shutil.rmtree(r)
@@ -78,6 +78,7 @@ def run(root, runs):
 def main():
     roots = glob('./gh-pages/*/')
     index('./gh-pages/', roots)
+    roots = glob('./gh-pages/*/')
 
     for root in roots:
         run(root, [os.path.basename(os.path.normpath(run)) for run in roots])
