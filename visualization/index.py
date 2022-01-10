@@ -45,7 +45,7 @@ def run(root, runs):
         'description': scenario_config[scenario]['description']
         } for scenario in scenario_names], key=lambda d: d['id'])
 
-    implementations = [{
+    implementations = sorted([{
         'name': implementation_config[implementation]['name'],
         'sender': {
             'href': implementation_config[implementation]['sender']['href'],
@@ -58,7 +58,7 @@ def run(root, runs):
         'scenarios': {
             int(os.path.basename(os.path.normpath(path))): os.path.join(implementation, os.path.basename(os.path.normpath(path)), 'detail.html')
             for path in glob(root + implementation + '/*/')},
-        } for implementation in implementation_names]
+        } for implementation in implementation_names], key=lambda d: d['name'])
 
     templates_dir = './visualization/templates/'
     env = Environment( loader = FileSystemLoader(templates_dir) )

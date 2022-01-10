@@ -2,221 +2,377 @@ package docker
 
 import (
 	"context"
-	_ "embed"
-	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
-	"os/signal"
-	"strings"
-	"syscall"
+	"path"
 	"time"
-
-	"github.com/mengelbart/bwe-test-runner/common"
 )
 
-type testcase struct {
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	URL         string            `json:"url"`
-	ComposeFile string            `json:"compose_file"`
-	Duration    common.Duration   `json:"duration"`
-	RouterMap   map[string]string `json:"router_map"`
-	LeftRouter  []tcPhase         `json:"left_router"`
-	RightRouter []tcPhase         `json:"right_router"`
+const composeFileString = `
+version: "3.8"
+
+services:
+  leftrouter:
+    image: engelbart/router
+    tty: true
+    command: bash
+    container_name: leftrouter
+    networks:
+      sharednet:
+        ipv4_address: 172.25.0.2
+      leftnet:
+        ipv4_address: 172.26.0.2
+    cap_add:
+      - NET_ADMIN
+
+  rightrouter:
+    image: engelbart/router
+    tty: true
+    command: bash
+    container_name: rightrouter
+    networks:
+      sharednet:
+        ipv4_address: 172.25.0.3
+      rightnet:
+        ipv4_address: 172.27.0.2
+    cap_add:
+      - NET_ADMIN
+
+  sender:
+    image: $SENDER
+    tty: true
+    container_name: sender
+    hostname: sender
+    environment:
+      ROLE: 'sender'
+      ARGS: $SENDER_ARGS
+      RECEIVER: '172.27.0.3'
+    volumes:
+      - ./$OUTPUT/send_log:/log
+      - ./input:/input:ro
+    networks:
+      leftnet:
+        ipv4_address: 172.26.0.3
+    cap_add:
+      - NET_ADMIN
+
+  receiver:
+    image: $RECEIVER
+    tty: true
+    container_name: receiver
+    hostname: receiver
+    environment:
+      ROLE: 'receiver'
+      ARGS: $RECEIVER_ARGS
+      SENDER: '172.26.03'
+    volumes:
+      - ./$OUTPUT/receive_log:/log
+      - ./$OUTPUT/sink:/output
+    networks:
+      rightnet:
+        ipv4_address: 172.27.0.3
+    cap_add:
+      - NET_ADMIN
+
+networks:
+  sharednet:
+    name: sharednet
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.25.0.0/16
+  leftnet:
+    name: leftnet
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.26.0.0/16
+  rightnet:
+    name: rightnet
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.27.0.0/16
+`
+
+type Implementation struct {
+	sender       string
+	senderArgs   string
+	receiver     string
+	receiverArgs string
 }
 
-type implementation struct {
-	Name     string   `json:"name"`
-	Sender   endpoint `json:"sender"`
-	Receiver endpoint `json:"receiver"`
+var Implementations = map[string]Implementation{
+	"pion-gcc": {
+		sender:       "engelbart/bwe-test-pion",
+		senderArgs:   "",
+		receiver:     "engelbart/bwe-test-pion",
+		receiverArgs: "",
+	},
 }
 
-type endpoint struct {
-	Image string
-	Args  string
-}
+// TODO: Move somewhere else
+var composeFile = "1-docker-compose.yml"
 
-var (
-	//go:embed testcases.json
-	availableTestcasesJSON string
-	availableTestcases     map[string]testcase
-
-	//go:embed implementations.json
-	availableImplementationsJSON string
-	availableImplementations     map[string]implementation
-)
-
-func init() {
-	mustParseConfig(availableTestcasesJSON, &availableTestcases)
-	mustParseConfig(availableImplementationsJSON, &availableImplementations)
-}
-
-type Basic struct {
-	Date int64
-	testcase
-	implementation
-}
-
-func NewBasic(date int64, testcaseName string, implementationName string) common.Runner {
-	b := &Basic{
-		Date:           date,
-		testcase:       availableTestcases[testcaseName],
-		implementation: availableImplementations[implementationName],
-	}
-	return b
-}
-
-func (d *Basic) dumpConfig() error {
-	conns := []common.Connection{}
-	for k, r := range d.RouterMap {
-		conns = append(conns, common.Connection{
-			Name:           k,
-			Router:         r,
-			Implementation: d.implementation.Name,
-		})
-	}
-	config := common.Config{
-		Date:        d.Date,
-		Connections: conns,
-		Scenario: common.Scenario{
-			Name:        d.testcase.Name,
-			Description: d.Description,
-			URL:         d.URL,
+var leftPhases = []tcPhase{
+	{
+		Duration: 40 * time.Second,
+		Config: tcConfig{
+			Delay:   50 * time.Millisecond,
+			Jitter:  30 * time.Millisecond,
+			Rate:    "1000000",
+			Burst:   "20kb",
+			Latency: 300 * time.Millisecond,
 		},
-	}
-	bs, err := json.Marshal(config)
-	if err != nil {
-		return err
-	}
-	f, err := os.Create("output/config.json")
-	if err != nil {
-		return err
-	}
-	_, err = f.Write(bs)
-	return err
+	},
+	{
+		Duration: 20 * time.Second,
+		Config: tcConfig{
+			Delay:   50 * time.Millisecond,
+			Jitter:  30 * time.Millisecond,
+			Rate:    "2500000",
+			Burst:   "20kb",
+			Latency: 300 * time.Millisecond,
+		},
+	},
+	{
+		Duration: 20 * time.Second,
+		Config: tcConfig{
+			Delay:   50 * time.Millisecond,
+			Jitter:  30 * time.Millisecond,
+			Rate:    "600000",
+			Burst:   "20kb",
+			Latency: 300 * time.Millisecond,
+		},
+	},
+	{
+		Duration: 20 * time.Second,
+		Config: tcConfig{
+			Delay:   50 * time.Millisecond,
+			Jitter:  30 * time.Millisecond,
+			Rate:    "1000000",
+			Burst:   "20kb",
+			Latency: 300 * time.Millisecond,
+		},
+	},
+	{
+		Duration: 0,
+		Config: tcConfig{
+			Delay:   50 * time.Millisecond,
+			Jitter:  30 * time.Millisecond,
+			Rate:    "1000000",
+			Burst:   "20kb",
+			Latency: 300 * time.Millisecond,
+		},
+	},
+}
+var rightPhases = []tcPhase{
+	{
+		Duration: 40 * time.Second,
+		Config: tcConfig{
+			Delay:   50 * time.Millisecond,
+			Jitter:  30 * time.Millisecond,
+			Rate:    "1000000",
+			Burst:   "20kb",
+			Latency: 300 * time.Millisecond,
+		},
+	},
+	{
+		Duration: 20 * time.Second,
+		Config: tcConfig{
+			Delay:   50 * time.Millisecond,
+			Jitter:  30 * time.Millisecond,
+			Rate:    "2500000",
+			Burst:   "20kb",
+			Latency: 300 * time.Millisecond,
+		},
+	},
+	{
+		Duration: 20 * time.Second,
+		Config: tcConfig{
+			Delay:   50 * time.Millisecond,
+			Jitter:  30 * time.Millisecond,
+			Rate:    "600000",
+			Burst:   "20kb",
+			Latency: 300 * time.Millisecond,
+		},
+	},
+	{
+		Duration: 20 * time.Second,
+		Config: tcConfig{
+			Delay:   50 * time.Millisecond,
+			Jitter:  30 * time.Millisecond,
+			Rate:    "1000000",
+			Burst:   "20kb",
+			Latency: 300 * time.Millisecond,
+		},
+	},
+	{
+		Duration: 0,
+		Config: tcConfig{
+			Delay:   50 * time.Millisecond,
+			Jitter:  30 * time.Millisecond,
+			Rate:    "1000000",
+			Burst:   "20kb",
+			Latency: 300 * time.Millisecond,
+		},
+	},
 }
 
-func (d *Basic) Run() error {
-	const (
-		leftRouterLogFile  = "output/leftrouter.log"
-		rightRouterLogFile = "output/rightrouter.log"
-	)
-	for k := range d.RouterMap {
-		for _, path := range []string{
-			"send_log", "receive_log", "output",
-		} {
-			dir := fmt.Sprintf("output/%v/%v", k, path)
-			if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-				return err
-			}
-		}
+func Run(ctx context.Context, implementationName string, outputDir string) error {
+	implementation, ok := Implementations[implementationName]
+	if !ok {
+		return fmt.Errorf("unknown implementation: %v", implementationName)
 	}
-	if err := d.dumpConfig(); err != nil {
+
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return err
 	}
 
-	upCMD := exec.Command(
-		"docker-compose", "-f", d.ComposeFile,
-		"up", "--force-recreate",
-	)
-	upCMD.Stdout = os.Stdout
-	upCMD.Stderr = os.Stderr
-
-	// Use host env
-	upCMD.Env = os.Environ()
-
-	for l := range d.RouterMap {
-		u := strings.ToUpper(l)
-		upCMD.Env = append(upCMD.Env, fmt.Sprintf("SENDER_%v=%v", u, d.Sender.Image))
-		upCMD.Env = append(upCMD.Env, fmt.Sprintf("SENDER_%v_ARGS=%v", u, d.Sender.Args))
-		upCMD.Env = append(upCMD.Env, fmt.Sprintf("RECEIVER_%v=%v", u, d.Receiver.Image))
-		upCMD.Env = append(upCMD.Env, fmt.Sprintf("RECEIVER_%v_ARGS=%v", u, d.Receiver.Args))
-	}
-	if err := upCMD.Start(); err != nil {
-		return err
-	}
-
-	defer func() {
-		downCMD := exec.Command("docker-compose", "-f", d.ComposeFile, "down")
-		//downCMD.Stdout = os.Stdout
-		//downCMD.Stderr = os.Stderr
-
-		// Use host env
-		downCMD.Env = os.Environ()
-		if err1 := downCMD.Run(); err1 != nil {
-			log.Printf("failed to shutdown docker compose setup: %v\n", err1)
-		}
-	}()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	leftRouterLog, err := os.Create(leftRouterLogFile)
+	composeFile, err := os.Create("docker-compose.yml")
 	if err != nil {
 		return err
 	}
-	rightRouterLog, err := os.Create(rightRouterLogFile)
+	if _, err = composeFile.WriteString(composeFileString); err != nil {
+		return err
+	}
+	if err = composeFile.Sync(); err != nil {
+		return err
+	}
+	defer os.Remove(composeFile.Name())
+
+	leftRouterLog, err := os.Create(path.Join(outputDir, "leftrouter.log"))
+	if err != nil {
+		return err
+	}
+	rightRouterLog, err := os.Create(path.Join(outputDir, "rightrouter.log"))
 	if err != nil {
 		return err
 	}
 
-	tsCh := make(chan *TrafficShaper)
+	if err = createNetwork(ctx, composeFile.Name(), leftPhases, rightPhases, leftRouterLog, rightRouterLog); err != nil {
+		return err
+	}
+
+	cmd := exec.Command(
+		"docker-compose", "-f", composeFile.Name(), "up", "--abort-on-container-exit",
+	)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	cmd.Env = os.Environ()
+
+	for k, v := range map[string]string{
+		"SENDER":        implementation.sender,
+		"SENDER_ARGS":   implementation.senderArgs,
+		"RECEIVER":      implementation.receiver,
+		"RECEIVER_ARGS": implementation.receiverArgs,
+		"OUTPUT":        outputDir,
+	} {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%v=%v", k, v))
+	}
+
+	fmt.Println(cmd.Args)
+	if err = cmd.Start(); err != nil {
+		return err
+	}
+
 	errCh := make(chan error)
 	go func() {
-		ts, err1 := newTrafficShaper(ctx, "/leftrouter", d.LeftRouter, leftRouterLog)
-		if err1 != nil {
-			errCh <- err1
-		}
-		tsCh <- ts
+		errCh <- cmd.Wait()
 	}()
-	go func() {
-		ts, err1 := newTrafficShaper(ctx, "/rightrouter", d.RightRouter, rightRouterLog)
-		if err1 != nil {
-			errCh <- err1
-		}
-		tsCh <- ts
-	}()
-
-	tss := []*TrafficShaper{}
-	for i := 0; i < 2; i++ {
-		select {
-		case err = <-errCh:
+	select {
+	case <-time.After(120 * time.Second):
+	case <-ctx.Done():
+	case err = <-errCh:
+		if err != nil {
 			return err
-		case ts := <-tsCh:
-			tss = append(tss, ts)
 		}
 	}
 
-	for _, ts := range tss {
-		go func(ts *TrafficShaper) {
-			err = ts.run(ctx)
-			if err != nil {
-				errCh <- err
-			}
-		}(ts)
+	return teardown(composeFile.Name())
+}
+
+func Plot(outputDir, plotDir string, basetime int64) error {
+	if err := os.MkdirAll(plotDir, 0755); err != nil {
+		return err
 	}
 
-	sigs := make(chan os.Signal, 1)
-	done := make(chan error, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		select {
-		case <-time.After(d.Duration.Duration):
-			log.Printf("testcase time over\n")
-
-		case err1 := <-errCh:
-			log.Printf("got error: %v, exiting\n", err)
-			err = err1
-
-		case sig := <-sigs:
-			log.Printf("got signal %v, exiting\n", sig)
+	for _, plot := range []string{
+		"rates",
+		"qlog-cwnd",
+		"qlog-bytes-sent",
+		"qlog-rtt",
+		"scream",
+		"html",
+	} {
+		plotCMD := exec.Command(
+			"./plot.py",
+			plot,
+			"--input_dir", outputDir,
+			"--output_dir", plotDir,
+			"--basetime", fmt.Sprintf("%v", basetime),
+			"--router", "leftrouter.log",
+		)
+		fmt.Println(plotCMD.Args)
+		plotCMD.Stderr = os.Stderr
+		plotCMD.Stdout = os.Stdout
+		if err := plotCMD.Run(); err != nil {
+			return err
 		}
-		done <- err
-	}()
+	}
+	return nil
+}
 
-	err = <-done
-	return err
+func createNetwork(
+	ctx context.Context,
+	composeFile string,
+	leftPhases []tcPhase,
+	rightPhases []tcPhase,
+	leftRouterLog io.Writer,
+	rightRouterLog io.Writer,
+) error {
+	cmd := exec.Command(
+		"docker-compose", "-f", composeFile, "up", "--force-recreate", "leftrouter", "rightrouter",
+	)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	fmt.Println(cmd.Args)
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	lrShaper, err := newTrafficShaper(ctx, "/leftrouter", leftPhases, leftRouterLog)
+	if err != nil {
+		return err
+	}
+
+	rrShaper, err := newTrafficShaper(ctx, "/rightrouter", rightPhases, rightRouterLog)
+	if err != nil {
+		return err
+	}
+
+	go lrShaper.run(ctx)
+	go rrShaper.run(ctx)
+
+	return nil
+}
+
+func teardown(composeFile string) error {
+	cmd := exec.Command("docker-compose", "-f", composeFile, "down")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	// Use host env
+	cmd.Env = os.Environ()
+	fmt.Println()
+	fmt.Println(cmd.Args)
+	fmt.Println()
+	if err := cmd.Run(); err != nil {
+		log.Printf("failed to shutdown docker compose setup: %v\n", err)
+	}
+	return nil
 }

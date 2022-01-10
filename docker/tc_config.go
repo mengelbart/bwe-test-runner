@@ -6,21 +6,20 @@ import (
 	"log"
 	"os"
 	"os/exec"
-
-	"github.com/mengelbart/bwe-test-runner/common"
+	"time"
 )
 
 type tcPhase struct {
-	Duration common.Duration `json:"duration"`
-	Config   tcConfig        `json:"config"`
+	Duration time.Duration `json:"duration"`
+	Config   tcConfig      `json:"config"`
 }
 
 type tcConfig struct {
-	Delay   common.Duration `json:"delay"`
-	Jitter  common.Duration `json:"jitter"`
-	Rate    string          `json:"rate"`
-	Burst   string          `json:"burst"`
-	Latency common.Duration `json:"latency"`
+	Delay   time.Duration `json:"delay"`
+	Jitter  time.Duration `json:"jitter"`
+	Rate    string        `json:"rate"`
+	Burst   string        `json:"burst"`
+	Latency time.Duration `json:"latency"`
 }
 
 func (t tcConfig) apply(container, iface string, isFirst bool) error {

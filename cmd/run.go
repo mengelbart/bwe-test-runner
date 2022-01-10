@@ -1,27 +1,23 @@
 package cmd
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"log"
-	"strings"
+	"os"
+	"os/signal"
+	"path"
+	"syscall"
 	"time"
 
-	"github.com/mengelbart/bwe-test-runner/common"
 	"github.com/mengelbart/bwe-test-runner/docker"
 	"github.com/spf13/cobra"
 )
 
 var (
 	runDate            int64
-	runnerFlag         string
-	scenarioFlag       string
 	implementationFlag string
 )
-
-var runnersMap = map[string]common.RunnerFactory{
-	"docker": docker.NewBasic,
-}
 
 var runCmd = &cobra.Command{
 	Use:   "run",
@@ -33,30 +29,43 @@ var runCmd = &cobra.Command{
 	},
 }
 
-func runners() []string {
-	keys := []string{}
-	for k := range runnersMap {
-		keys = append(keys, k)
-	}
-	return keys
-}
-
 func init() {
 	rootCmd.AddCommand(runCmd)
 
 	runCmd.Flags().Int64VarP(&runDate, "date", "d", time.Now().Unix(), "Unix Timestamp in seconds since epoch")
-	runCmd.Flags().StringVarP(&runnerFlag, "runner", "r", runners()[0], fmt.Sprintf("Test case scenario to run (options: %v)", strings.Join(runners(), ", ")))
-	runCmd.Flags().StringVarP(&scenarioFlag, "scenario", "s", "1", "Scenario to run")
 	runCmd.Flags().StringVarP(&implementationFlag, "implementation", "i", "pion-gcc", "Implementation to run")
 }
 
-var errInvalidRunner = errors.New("invalid runner")
-
 func run() error {
-	runnerFactory, ok := runnersMap[runnerFlag]
-	if !ok {
-		return errInvalidRunner
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	outputDir := path.Join("output/", fmt.Sprintf("%v", runDate), implementationFlag, "1")
+	plotDir := path.Join("html/", fmt.Sprintf("%v", runDate), implementationFlag, "1")
+	basetime := time.Now().Unix()
+	errCh := make(chan error)
+	go func() {
+		errCh <- docker.Run(ctx, implementationFlag, outputDir)
+	}()
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT)
+	go func() {
+		select {
+		case sig := <-sigs:
+			fmt.Printf("got signal %v, aborting\n", sig)
+			cancel()
+		case <-ctx.Done():
+		}
+	}()
+
+	err := <-errCh
+	if err != nil {
+		return err
 	}
-	runner := runnerFactory(runDate, scenarioFlag, implementationFlag)
-	return runner.Run()
+
+	if err := docker.Plot(outputDir, plotDir, basetime); err != nil {
+		return err
+	}
+	return nil
 }

@@ -20,13 +20,13 @@ const tsTimeout = 5 * time.Minute
 var errTrafficShaperTimeout = errors.New("traffic shaper timed out while waiting for containers to spin up")
 
 type TrafficShaper struct {
-	log       io.WriteCloser
+	log       io.Writer
 	container string
 	iface     string
 	phases    []tcPhase
 }
 
-func newTrafficShaper(ctx context.Context, name string, phases []tcPhase, log io.WriteCloser) (*TrafficShaper, error) {
+func newTrafficShaper(ctx context.Context, name string, phases []tcPhase, log io.Writer) (*TrafficShaper, error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return nil, err
@@ -63,7 +63,6 @@ func (s *TrafficShaper) run(ctx context.Context) error {
 	defer func() {
 		now := time.Now()
 		fmt.Fprintf(s.log, "%v, %v\n", now.UnixMilli(), lastRate)
-		s.log.Close()
 	}()
 	if len(s.phases) == 0 {
 		return nil
@@ -76,13 +75,13 @@ func (s *TrafficShaper) run(ctx context.Context) error {
 			return err
 		}
 
-		if p.Duration.Duration == 0 {
+		if p.Duration == 0 {
 			return nil
 		}
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-time.After(p.Duration.Duration):
+		case <-time.After(p.Duration):
 		}
 	}
 	return nil

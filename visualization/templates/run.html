@@ -38,7 +38,7 @@
           {% for implementation in implementations %}
             <tr>
               <td>
-                {{ implementation.name }}
+                {{ implementation.name }}<br>
                 Send: <a href="{{ implementation.sender.href }}" target="_blank">{{ implementation.sender.image }}</a><br>
                 Receive: <a href="{{ implementation.receiver.href }}" target="_blank">{{ implementation.receiver.image }}</a><br>
               </td>
