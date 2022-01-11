@@ -63,10 +63,12 @@ func (s *TrafficShaper) run(ctx context.Context) error {
 	defer func() {
 		now := time.Now()
 		fmt.Fprintf(s.log, "%v, %v\n", now.UnixMilli(), lastRate)
+		log.Printf("exiting traffic shaper: %v\n", s.container)
 	}()
 	if len(s.phases) == 0 {
 		return nil
 	}
+	fmt.Printf("applying phases: %v\n", s.phases)
 	for i, p := range s.phases {
 		lastRate = p.Config.Rate
 		fmt.Fprintf(s.log, "%v, %v\n", time.Now().UnixMilli(), lastRate)

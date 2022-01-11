@@ -11,92 +11,315 @@ import (
 	"time"
 )
 
-const composeFileString = `
-version: "3.8"
+type TestCase struct {
+	composeFileString string
+	duration          time.Duration
+	leftRouter        []tcPhase
+	rightRouter       []tcPhase
+	plotFunc          func(outputDir, plotDir string, basetime int64) error
+}
 
-services:
-  leftrouter:
-    image: engelbart/router
-    tty: true
-    command: bash
-    container_name: leftrouter
-    networks:
-      sharednet:
-        ipv4_address: 172.25.0.2
-      leftnet:
-        ipv4_address: 172.26.0.2
-    cap_add:
-      - NET_ADMIN
+func TestCaseList() []string {
+	res := []string{}
+	for k := range TestCases {
+		res = append(res, k)
+	}
+	return res
+}
 
-  rightrouter:
-    image: engelbart/router
-    tty: true
-    command: bash
-    container_name: rightrouter
-    networks:
-      sharednet:
-        ipv4_address: 172.25.0.3
-      rightnet:
-        ipv4_address: 172.27.0.2
-    cap_add:
-      - NET_ADMIN
+func ImplementationList() []string {
+	res := []string{}
+	for k := range Implementations {
+		res = append(res, k)
+	}
+	return res
+}
 
-  sender:
-    image: $SENDER
-    tty: true
-    container_name: sender
-    hostname: sender
-    environment:
-      ROLE: 'sender'
-      ARGS: $SENDER_ARGS
-      RECEIVER: '172.27.0.3'
-    volumes:
-      - ./$OUTPUT/send_log:/log
-      - ./input:/input:ro
-    networks:
-      leftnet:
-        ipv4_address: 172.26.0.3
-    cap_add:
-      - NET_ADMIN
+var TestCases = map[string]TestCase{
+	"VariableAvailableCapacitySingleFlow": {
+		composeFileString: composeFileStringOne,
+		duration:          100 * time.Second,
+		leftRouter: []tcPhase{
+			{
+				Duration: 40 * time.Second,
+				Config: tcConfig{
+					Delay:   50 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "1000000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+			{
+				Duration: 20 * time.Second,
+				Config: tcConfig{
+					Delay:   50 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "2500000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+			{
+				Duration: 20 * time.Second,
+				Config: tcConfig{
+					Delay:   50 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "600000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+			{
+				Duration: 20 * time.Second,
+				Config: tcConfig{
+					Delay:   50 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "1000000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+		},
+		rightRouter: []tcPhase{},
+		plotFunc: func(outputDir, plotDir string, basetime int64) error {
+			if err := os.MkdirAll(plotDir, 0755); err != nil {
+				return err
+			}
 
-  receiver:
-    image: $RECEIVER
-    tty: true
-    container_name: receiver
-    hostname: receiver
-    environment:
-      ROLE: 'receiver'
-      ARGS: $RECEIVER_ARGS
-      SENDER: '172.26.03'
-    volumes:
-      - ./$OUTPUT/receive_log:/log
-      - ./$OUTPUT/sink:/output
-    networks:
-      rightnet:
-        ipv4_address: 172.27.0.3
-    cap_add:
-      - NET_ADMIN
-
-networks:
-  sharednet:
-    name: sharednet
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.25.0.0/16
-  leftnet:
-    name: leftnet
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.26.0.0/16
-  rightnet:
-    name: rightnet
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.27.0.0/16
-`
+			for _, plot := range []string{
+				"rates",
+				"qlog-cwnd",
+				"qlog-bytes-sent",
+				"qlog-rtt",
+				"scream",
+				"html",
+			} {
+				plotCMD := exec.Command(
+					"./plot.py",
+					plot,
+					"--name", "forward_0",
+					"--input_dir", path.Join(outputDir, "forward_0"),
+					"--output_dir", plotDir,
+					"--basetime", fmt.Sprintf("%v", basetime),
+					"--router", path.Join(outputDir, "leftrouter.log"),
+				)
+				fmt.Println(plotCMD.Args)
+				plotCMD.Stderr = os.Stderr
+				plotCMD.Stdout = os.Stdout
+				if err := plotCMD.Run(); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+	},
+	"VariableAvailableCapacityMultipleFlow": {
+		composeFileString: composeFileStringTwo,
+		duration:          125 * time.Second,
+		leftRouter: []tcPhase{
+			{
+				Duration: 25 * time.Second,
+				Config: tcConfig{
+					Delay:   50 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "4000000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+			{
+				Duration: 25 * time.Second,
+				Config: tcConfig{
+					Delay:   50 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "2000000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+			{
+				Duration: 25 * time.Second,
+				Config: tcConfig{
+					Delay:   50 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "3500000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+			{
+				Duration: 25 * time.Second,
+				Config: tcConfig{
+					Delay:   50 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "1000000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+			{
+				Duration: 25 * time.Second,
+				Config: tcConfig{
+					Delay:   50 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "2000000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+		},
+		rightRouter: []tcPhase{},
+		plotFunc: func(outputDir, plotDir string, basetime int64) error {
+			for _, direction := range []string{
+				"forward_0",
+				"forward_1",
+			} {
+				for _, plot := range []string{
+					"rates",
+					"qlog-cwnd",
+					"qlog-bytes-sent",
+					"qlog-rtt",
+					"scream",
+					"html",
+				} {
+					if err := os.MkdirAll(plotDir, 0755); err != nil {
+						return err
+					}
+					plotCMD := exec.Command(
+						"./plot.py",
+						plot,
+						"--name", direction,
+						"--input_dir", path.Join(outputDir, direction),
+						"--output_dir", plotDir,
+						"--basetime", fmt.Sprintf("%v", basetime),
+						"--router", path.Join(outputDir, "leftrouter.log"),
+					)
+					fmt.Println(plotCMD.Args)
+					plotCMD.Stderr = os.Stderr
+					plotCMD.Stdout = os.Stdout
+					if err := plotCMD.Run(); err != nil {
+						return err
+					}
+				}
+			}
+			return nil
+		},
+	},
+	"CongestedFeedbackLinkWithBiDirectionalMediaFlows": {
+		composeFileString: composeFileStringThree,
+		duration:          100 * time.Second,
+		leftRouter: []tcPhase{
+			{
+				Duration: 20 * time.Second,
+				Config: tcConfig{
+					Delay:   50 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "2000000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+			{
+				Duration: 20 * time.Second,
+				Config: tcConfig{
+					Delay:   50 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "1000000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+			{
+				Duration: 20 * time.Second,
+				Config: tcConfig{
+					Delay:   50 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "500000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+			{
+				Duration: 40 * time.Second,
+				Config: tcConfig{
+					Delay:   50 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "2000000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+		},
+		rightRouter: []tcPhase{
+			{
+				Duration: 35 * time.Second,
+				Config: tcConfig{
+					Delay:   50 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "2000000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+			{
+				Duration: 35 * time.Second,
+				Config: tcConfig{
+					Delay:   50 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "800000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+			{
+				Duration: 30 * time.Second,
+				Config: tcConfig{
+					Delay:   50 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "2000000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+		},
+		plotFunc: func(outputDir string, plotDir string, basetime int64) error {
+			for direction, router := range map[string]string{
+				"forward_0":  "leftrouter.log",
+				"backward_0": "rightrouter.log",
+			} {
+				for _, plot := range []string{
+					"rates",
+					"qlog-cwnd",
+					"qlog-bytes-sent",
+					"qlog-rtt",
+					"scream",
+					"html",
+				} {
+					if err := os.MkdirAll(plotDir, 0755); err != nil {
+						return err
+					}
+					plotCMD := exec.Command(
+						"./plot.py",
+						plot,
+						"--name", direction,
+						"--input_dir", path.Join(outputDir, direction),
+						"--output_dir", plotDir,
+						"--basetime", fmt.Sprintf("%v", basetime),
+						"--router", path.Join(outputDir, router),
+					)
+					fmt.Println(plotCMD.Args)
+					plotCMD.Stderr = os.Stderr
+					plotCMD.Stdout = os.Stdout
+					if err := plotCMD.Run(); err != nil {
+						return err
+					}
+				}
+			}
+			return nil
+		},
+	},
+}
 
 type Implementation struct {
 	sender       string
@@ -114,112 +337,7 @@ var Implementations = map[string]Implementation{
 	},
 }
 
-var leftPhases = []tcPhase{
-	{
-		Duration: 40 * time.Second,
-		Config: tcConfig{
-			Delay:   50 * time.Millisecond,
-			Jitter:  30 * time.Millisecond,
-			Rate:    "1000000",
-			Burst:   "20kb",
-			Latency: 300 * time.Millisecond,
-		},
-	},
-	{
-		Duration: 20 * time.Second,
-		Config: tcConfig{
-			Delay:   50 * time.Millisecond,
-			Jitter:  30 * time.Millisecond,
-			Rate:    "2500000",
-			Burst:   "20kb",
-			Latency: 300 * time.Millisecond,
-		},
-	},
-	{
-		Duration: 20 * time.Second,
-		Config: tcConfig{
-			Delay:   50 * time.Millisecond,
-			Jitter:  30 * time.Millisecond,
-			Rate:    "600000",
-			Burst:   "20kb",
-			Latency: 300 * time.Millisecond,
-		},
-	},
-	{
-		Duration: 20 * time.Second,
-		Config: tcConfig{
-			Delay:   50 * time.Millisecond,
-			Jitter:  30 * time.Millisecond,
-			Rate:    "1000000",
-			Burst:   "20kb",
-			Latency: 300 * time.Millisecond,
-		},
-	},
-	{
-		Duration: 0,
-		Config: tcConfig{
-			Delay:   50 * time.Millisecond,
-			Jitter:  30 * time.Millisecond,
-			Rate:    "1000000",
-			Burst:   "20kb",
-			Latency: 300 * time.Millisecond,
-		},
-	},
-}
-var rightPhases = []tcPhase{
-	{
-		Duration: 40 * time.Second,
-		Config: tcConfig{
-			Delay:   50 * time.Millisecond,
-			Jitter:  30 * time.Millisecond,
-			Rate:    "1000000",
-			Burst:   "20kb",
-			Latency: 300 * time.Millisecond,
-		},
-	},
-	{
-		Duration: 20 * time.Second,
-		Config: tcConfig{
-			Delay:   50 * time.Millisecond,
-			Jitter:  30 * time.Millisecond,
-			Rate:    "2500000",
-			Burst:   "20kb",
-			Latency: 300 * time.Millisecond,
-		},
-	},
-	{
-		Duration: 20 * time.Second,
-		Config: tcConfig{
-			Delay:   50 * time.Millisecond,
-			Jitter:  30 * time.Millisecond,
-			Rate:    "600000",
-			Burst:   "20kb",
-			Latency: 300 * time.Millisecond,
-		},
-	},
-	{
-		Duration: 20 * time.Second,
-		Config: tcConfig{
-			Delay:   50 * time.Millisecond,
-			Jitter:  30 * time.Millisecond,
-			Rate:    "1000000",
-			Burst:   "20kb",
-			Latency: 300 * time.Millisecond,
-		},
-	},
-	{
-		Duration: 0,
-		Config: tcConfig{
-			Delay:   50 * time.Millisecond,
-			Jitter:  30 * time.Millisecond,
-			Rate:    "1000000",
-			Burst:   "20kb",
-			Latency: 300 * time.Millisecond,
-		},
-	},
-}
-
-func Run(ctx context.Context, implementationName string, outputDir string) error {
+func (tc *TestCase) Run(ctx context.Context, implementationName string, outputDir string) error {
 	implementation, ok := Implementations[implementationName]
 	if !ok {
 		return fmt.Errorf("unknown implementation: %v", implementationName)
@@ -233,7 +351,7 @@ func Run(ctx context.Context, implementationName string, outputDir string) error
 	if err != nil {
 		return err
 	}
-	if _, err = composeFile.WriteString(composeFileString); err != nil {
+	if _, err = composeFile.WriteString(tc.composeFileString); err != nil {
 		return err
 	}
 	if err = composeFile.Sync(); err != nil {
@@ -250,7 +368,7 @@ func Run(ctx context.Context, implementationName string, outputDir string) error
 		return err
 	}
 
-	if err = createNetwork(ctx, composeFile.Name(), leftPhases, rightPhases, leftRouterLog, rightRouterLog); err != nil {
+	if err = createNetwork(ctx, composeFile.Name(), tc.leftRouter, tc.rightRouter, leftRouterLog, rightRouterLog); err != nil {
 		return err
 	}
 
@@ -263,11 +381,15 @@ func Run(ctx context.Context, implementationName string, outputDir string) error
 	cmd.Env = os.Environ()
 
 	for k, v := range map[string]string{
-		"SENDER":        implementation.sender,
-		"SENDER_ARGS":   implementation.senderArgs,
-		"RECEIVER":      implementation.receiver,
-		"RECEIVER_ARGS": implementation.receiverArgs,
-		"OUTPUT":        outputDir,
+		"SENDER_0":        implementation.sender,
+		"SENDER_0_ARGS":   implementation.senderArgs,
+		"RECEIVER_0":      implementation.receiver,
+		"RECEIVER_0_ARGS": implementation.receiverArgs,
+		"SENDER_1":        implementation.sender,
+		"SENDER_1_ARGS":   implementation.senderArgs,
+		"RECEIVER_1":      implementation.receiver,
+		"RECEIVER_1_ARGS": implementation.receiverArgs,
+		"OUTPUT":          outputDir,
 	} {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%v=%v", k, v))
 	}
@@ -282,7 +404,7 @@ func Run(ctx context.Context, implementationName string, outputDir string) error
 		errCh <- cmd.Wait()
 	}()
 	select {
-	case <-time.After(120 * time.Second):
+	case <-time.After(tc.duration + 10*time.Second):
 	case <-ctx.Done():
 	case err = <-errCh:
 		if err != nil {
@@ -293,35 +415,8 @@ func Run(ctx context.Context, implementationName string, outputDir string) error
 	return teardown(composeFile.Name())
 }
 
-func Plot(outputDir, plotDir string, basetime int64) error {
-	if err := os.MkdirAll(plotDir, 0755); err != nil {
-		return err
-	}
-
-	for _, plot := range []string{
-		"rates",
-		"qlog-cwnd",
-		"qlog-bytes-sent",
-		"qlog-rtt",
-		"scream",
-		"html",
-	} {
-		plotCMD := exec.Command(
-			"./plot.py",
-			plot,
-			"--input_dir", outputDir,
-			"--output_dir", plotDir,
-			"--basetime", fmt.Sprintf("%v", basetime),
-			"--router", path.Join(outputDir, "leftrouter.log"),
-		)
-		fmt.Println(plotCMD.Args)
-		plotCMD.Stderr = os.Stderr
-		plotCMD.Stdout = os.Stdout
-		if err := plotCMD.Run(); err != nil {
-			return err
-		}
-	}
-	return nil
+func (tc *TestCase) Plot(outputDir, plotDir string, basetime int64) error {
+	return tc.plotFunc(outputDir, plotDir, basetime)
 }
 
 func createNetwork(

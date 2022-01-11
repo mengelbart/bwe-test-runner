@@ -138,21 +138,22 @@ func getOnTrackFunc(log logging.LeveledLogger, receivedMetrics chan<- int) func(
 }
 
 func (tc *Testcase) Plot(outputDir, plotDir string, basetime int64) error {
-
+	if err := os.MkdirAll(plotDir, 0755); err != nil {
+		return err
+	}
 	for i := range tc.forward {
-		logDir := path.Join(outputDir, fmt.Sprintf("forward_%v", i))
-		out := path.Join(plotDir, fmt.Sprintf("forward_%v", i))
-		if err := os.MkdirAll(out, 0755); err != nil {
-			return err
-		}
+		direction := fmt.Sprintf("forward_%v", i)
+		logDir := path.Join(outputDir, direction)
 		for _, plot := range []string{
 			"rates",
+			"html",
 		} {
 			plotCMD := exec.Command(
 				"./plot.py",
 				plot,
+				"--name", direction,
 				"--input_dir", logDir,
-				"--output_dir", out,
+				"--output_dir", plotDir,
 				"--basetime", fmt.Sprintf("%v", basetime),
 				"--router", path.Join(outputDir, "leftrouter.log"),
 			)
@@ -165,16 +166,18 @@ func (tc *Testcase) Plot(outputDir, plotDir string, basetime int64) error {
 		}
 	}
 	for i := range tc.backward {
-		logDir := path.Join(outputDir, fmt.Sprintf("backward_%v", i))
-		out := path.Join(plotDir, fmt.Sprintf("backward_%v", i))
+		direction := fmt.Sprintf("backward_%v", i)
+		logDir := path.Join(outputDir, direction)
 		for _, plot := range []string{
 			"rates",
+			"html",
 		} {
 			plotCMD := exec.Command(
 				"./plot.py",
 				plot,
+				"--name", direction,
 				"--input_dir", logDir,
-				"--output_dir", out,
+				"--output_dir", plotDir,
 				"--basetime", fmt.Sprintf("%v", basetime),
 				"--router", "rightrouter.log",
 			)

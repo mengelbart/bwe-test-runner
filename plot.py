@@ -351,7 +351,7 @@ class tcp_plot:
         plt.savefig(os.path.join(path, self.name + '-plot.png'))
 
 def generate_html(path):
-    images = [x[len(path):] for x in glob(os.path.join(path, '**/*.png'))]
+    images = [os.path.basename(x) for x in glob(os.path.join(path, '*.png'))]
     templates_dir = './templates/'
     env = Environment(loader = FileSystemLoader(templates_dir))
     template = env.get_template('detail.html')

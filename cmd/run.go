@@ -17,6 +17,7 @@ import (
 var (
 	runDate            int64
 	implementationFlag string
+	testcaseFlag       string
 )
 
 var runCmd = &cobra.Command{
@@ -32,8 +33,12 @@ var runCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(runCmd)
 
+	dockerTestCases := docker.TestCaseList()
+	dockerImplementations := docker.ImplementationList()
+
 	runCmd.Flags().Int64VarP(&runDate, "date", "d", time.Now().Unix(), "Unix Timestamp in seconds since epoch")
-	runCmd.Flags().StringVarP(&implementationFlag, "implementation", "i", "pion-gcc", "Implementation to run")
+	runCmd.Flags().StringVarP(&implementationFlag, "implementation", "i", dockerImplementations[0], "Implementation to run")
+	runCmd.Flags().StringVarP(&testcaseFlag, "testcase", "t", dockerTestCases[0], "Testcase to run")
 }
 
 func run() error {
@@ -44,8 +49,10 @@ func run() error {
 	plotDir := path.Join("html/", fmt.Sprintf("%v", runDate), implementationFlag, "1")
 	basetime := time.Now().Unix()
 	errCh := make(chan error)
+
+	tc := docker.TestCases[testcaseFlag]
 	go func() {
-		errCh <- docker.Run(ctx, implementationFlag, outputDir)
+		errCh <- tc.Run(ctx, implementationFlag, outputDir)
 	}()
 
 	sigs := make(chan os.Signal, 1)
@@ -64,7 +71,7 @@ func run() error {
 		return err
 	}
 
-	if err := docker.Plot(outputDir, plotDir, basetime); err != nil {
+	if err := tc.Plot(outputDir, plotDir, basetime); err != nil {
 		return err
 	}
 	return nil

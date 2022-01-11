@@ -15,18 +15,20 @@ func TestOne(t *testing.T) {
 
 	date := time.Now().Unix()
 
-	for name := range docker.Implementations {
-		t.Run(name, func(t *testing.T) {
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
+	for tcName, tc := range docker.TestCases {
+		for name := range docker.Implementations {
+			t.Run(fmt.Sprintf("%v-%v", tcName, name), func(t *testing.T) {
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
 
-			basetime := time.Now().Unix()
+				basetime := time.Now().Unix()
 
-			outputDir := path.Join("output/", fmt.Sprintf("%v", date), name, "1")
-			plotDir := path.Join("html/", fmt.Sprintf("%v", date), name, "1")
+				outputDir := path.Join("output/", fmt.Sprintf("%v", date), name, tcName)
+				plotDir := path.Join("html/", fmt.Sprintf("%v", date), name, tcName)
 
-			assert.NoError(t, docker.Run(ctx, name, outputDir))
-			assert.NoError(t, docker.Plot(outputDir, plotDir, basetime))
-		})
+				assert.NoError(t, tc.Run(ctx, name, outputDir))
+				assert.NoError(t, tc.Plot(outputDir, plotDir, basetime))
+			})
+		}
 	}
 }
