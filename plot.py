@@ -381,14 +381,14 @@ def main():
             plot.add_cc(os.path.join(args.input_dir, 'send_log', 'gcc.log'), basetime)
             plot.add_cc(os.path.join(args.input_dir, 'send_log', 'scream.log'), basetime)
             plot.add_cc(os.path.join(args.input_dir, 'send_log', 'cc.log'), basetime)
-            plot.add_router(os.path.join(args.input_dir, args.router), basetime)
+            plot.add_router(args.router, basetime)
             plot.plot(args.output_dir)
 
         case 'scream':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
             plot = scream_plot(args.plot)
-            plot.add_scream(os.path.join(args.input_dir, 'send_log', 'scream.log'), basetime)
-            plot.plot(args.output_dir)
+            if plot.add_scream(os.path.join(args.input_dir, 'send_log', 'scream.log'), basetime):
+                plot.plot(args.output_dir)
 
         case 'qlog-cwnd':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000

@@ -114,9 +114,6 @@ var Implementations = map[string]Implementation{
 	},
 }
 
-// TODO: Move somewhere else
-var composeFile = "1-docker-compose.yml"
-
 var leftPhases = []tcPhase{
 	{
 		Duration: 40 * time.Second,
@@ -315,7 +312,7 @@ func Plot(outputDir, plotDir string, basetime int64) error {
 			"--input_dir", outputDir,
 			"--output_dir", plotDir,
 			"--basetime", fmt.Sprintf("%v", basetime),
-			"--router", "leftrouter.log",
+			"--router", path.Join(outputDir, "leftrouter.log"),
 		)
 		fmt.Println(plotCMD.Args)
 		plotCMD.Stderr = os.Stderr
@@ -355,8 +352,16 @@ func createNetwork(
 		return err
 	}
 
-	go lrShaper.run(ctx)
-	go rrShaper.run(ctx)
+	go func() {
+		if err := lrShaper.run(ctx); err != nil {
+			log.Fatal(err)
+		}
+	}()
+	go func() {
+		if err := rrShaper.run(ctx); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	return nil
 }

@@ -1,8 +1,6 @@
 package docker
 
 import (
-	"encoding/json"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -68,19 +66,4 @@ func (t tcConfig) apply(container, iface string, isFirst bool) error {
 	}
 
 	return nil
-}
-
-func parseJSONFile(filename string, result interface{}) error {
-	jsonFile, err := os.Open(filename)
-	if err != nil {
-		return err
-	}
-	defer jsonFile.Close()
-
-	data, err := ioutil.ReadAll(jsonFile)
-	if err != nil {
-		return err
-	}
-
-	return json.Unmarshal(data, result)
 }
