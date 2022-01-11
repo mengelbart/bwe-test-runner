@@ -351,8 +351,7 @@ class tcp_plot:
         plt.savefig(os.path.join(path, self.name + '-plot.png'))
 
 def generate_html(path):
-    images = [os.path.basename(x) for x in glob(os.path.join(path, '*.png'))]
-    print(images)
+    images = [x[len(path):] for x in glob(os.path.join(path, '**/*.png'))]
     templates_dir = './templates/'
     env = Environment(loader = FileSystemLoader(templates_dir))
     template = env.get_template('detail.html')
@@ -365,6 +364,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("plot")
 
+    parser.add_argument("--name")
     parser.add_argument("--input_dir")
     parser.add_argument("--output_dir")
     parser.add_argument("--basetime", type=int, default=0)
@@ -375,7 +375,7 @@ def main():
     match args.plot:
         case 'rates':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
-            plot = rates_plot(args.plot)
+            plot = rates_plot(args.name + '-' + args.plot)
             plot.add_rtp(os.path.join(args.input_dir, 'send_log', 'rtp_out.log'), basetime, 'RTP sent')
             plot.add_rtp(os.path.join(args.input_dir, 'receive_log', 'rtp_in.log'), basetime, 'RTP received')
             plot.add_cc(os.path.join(args.input_dir, 'send_log', 'gcc.log'), basetime)
@@ -386,20 +386,20 @@ def main():
 
         case 'scream':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
-            plot = scream_plot(args.plot)
+            plot = scream_plot(args.name + '-' + args.plot)
             if plot.add_scream(os.path.join(args.input_dir, 'send_log', 'scream.log'), basetime):
                 plot.plot(args.output_dir)
 
         case 'qlog-cwnd':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
             qlog_files = glob(os.path.join(args.input_dir, 'send_log', '*.qlog'))
-            plot = qlog_cwnd_plot(args.plot + '-sender')
+            plot = qlog_cwnd_plot(args.name + '-' + args.plot + '-sender')
             if len(qlog_files) > 0:
                 if plot.add_cwnd(qlog_files[0]):
                     plot.plot(args.output_dir)
 
             qlog_files = glob(os.path.join(args.input_dir, 'receive_log', '*.qlog'))
-            plot = qlog_cwnd_plot(args.plot + '-receiver')
+            plot = qlog_cwnd_plot(args.name + '-' + args.plot + '-receiver')
             if len(qlog_files) > 0:
                 if plot.add_cwnd(qlog_files[0]):
                     plot.plot(args.output_dir)
@@ -407,13 +407,13 @@ def main():
         case 'qlog-bytes-sent':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
             qlog_files = glob(os.path.join(args.input_dir, 'send_log', '*.qlog'))
-            plot = qlog_bytes_sent_plot(args.plot + '-sender')
+            plot = qlog_bytes_sent_plot(args.name + '-' + args.plot + '-sender')
             if len(qlog_files) > 0:
                 if plot.add_bytes_sent(qlog_files[0]):
                     plot.plot(args.output_dir)
 
             qlog_files = glob(os.path.join(args.input_dir, 'receive_log', '*.qlog'))
-            plot = qlog_bytes_sent_plot(args.plot + '-receiver')
+            plot = qlog_bytes_sent_plot(args.name + '-' + args.plot + '-receiver')
             if len(qlog_files) > 0:
                 if plot.add_bytes_sent(qlog_files[0]):
                     plot.plot(args.output_dir)
@@ -421,13 +421,13 @@ def main():
         case 'qlog-rtt':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
             qlog_files = glob(os.path.join(args.input_dir, 'send_log', '*.qlog'))
-            plot = qlog_rtt_plot(args.plot + '-sender')
+            plot = qlog_rtt_plot(args.name + '-' + args.plot + '-sender')
             if len(qlog_files) > 0:
                 if plot.add_rtt(qlog_files[0]):
                     plot.plot(args.output_dir)
 
             qlog_files = glob(os.path.join(args.input_dir, 'receive_log', '*.qlog'))
-            plot = qlog_rtt_plot(args.plot + '-receiver')
+            plot = qlog_rtt_plot(args.name + '-' + args.plot + '-receiver')
             if len(qlog_files) > 0:
                 if plot.add_rtt(qlog_files[0]):
                     plot.plot(args.output_dir)
