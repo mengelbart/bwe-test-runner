@@ -1,1 +1,0 @@
-{"date":1640091539,"connections":[{"name":"a","router":"leftrouter.log","implementation":"pion-gcc"}],"scenario":{"name":"1","description":"Variable Available Capacity with a Single Flow","url":"https://www.rfc-editor.org/rfc/rfc8867.html#section-5.1"}}
