@@ -432,6 +432,15 @@ def main():
                 if plot.add_rtt(qlog_files[0]):
                     plot.plot(args.output_dir)
 
+        case 'tcp':
+            basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
+            plot = tcp_plot(args.name + '-' + args.plot)
+            plot.add_router(args.router, basetime)
+            found_sent = plot.add(os.path.join(args.input_dir, 'send_log', 'tcp.log'), 'TCP sent')
+            found_received = plot.add(os.path.join(args.input_dir, 'receive_log', 'tcp.log'), 'TCP received')
+            if found_sent or found_received:
+                plot.plot(args.output_dir)
+
         case 'html':
             generate_html(args.output_dir)
 

@@ -89,10 +89,6 @@ var TestCases = map[string]TestCase{
 
 			for _, plot := range []string{
 				"rates",
-				"qlog-cwnd",
-				"qlog-bytes-sent",
-				"qlog-rtt",
-				"scream",
 				"html",
 			} {
 				plotCMD := exec.Command(
@@ -177,10 +173,6 @@ var TestCases = map[string]TestCase{
 			} {
 				for _, plot := range []string{
 					"rates",
-					"qlog-cwnd",
-					"qlog-bytes-sent",
-					"qlog-rtt",
-					"scream",
 					"html",
 				} {
 					if err := os.MkdirAll(plotDir, 0755); err != nil {
@@ -290,10 +282,6 @@ var TestCases = map[string]TestCase{
 			} {
 				for _, plot := range []string{
 					"rates",
-					"qlog-cwnd",
-					"qlog-bytes-sent",
-					"qlog-rtt",
-					"scream",
 					"html",
 				} {
 					if err := os.MkdirAll(plotDir, 0755); err != nil {
@@ -315,6 +303,61 @@ var TestCases = map[string]TestCase{
 						return err
 					}
 				}
+			}
+			return nil
+		},
+	},
+	"MediaFlowCompetingWithALongTCPFlow": {
+		composeFileString: composeFileStringSix,
+		duration:          120 * time.Second,
+		leftRouter: []tcPhase{
+			{
+				Duration: 120 * time.Second,
+				Config: tcConfig{
+					Delay:   50 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "2000000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+		},
+		rightRouter: []tcPhase{},
+		plotFunc: func(outputDir, plotDir string, basetime int64) error {
+			if err := os.MkdirAll(plotDir, 0755); err != nil {
+				return err
+			}
+
+			for plot, direction := range map[string]string{
+				"rates": "forward_0",
+				"tcp":   "forward_1",
+			} {
+				plotCMD := exec.Command(
+					"./plot.py",
+					plot,
+					"--name", direction,
+					"--input_dir", path.Join(outputDir, direction),
+					"--output_dir", plotDir,
+					"--basetime", fmt.Sprintf("%v", basetime),
+					"--router", path.Join(outputDir, "leftrouter.log"),
+				)
+				fmt.Println(plotCMD.Args)
+				plotCMD.Stderr = os.Stderr
+				plotCMD.Stdout = os.Stdout
+				if err := plotCMD.Run(); err != nil {
+					return err
+				}
+			}
+			plotCMD := exec.Command(
+				"./plot.py",
+				"html",
+				"--output_dir", plotDir,
+			)
+			fmt.Println(plotCMD.Args)
+			plotCMD.Stderr = os.Stderr
+			plotCMD.Stdout = os.Stdout
+			if err := plotCMD.Run(); err != nil {
+				return err
 			}
 			return nil
 		},
@@ -373,7 +416,7 @@ func (tc *TestCase) Run(ctx context.Context, implementationName string, outputDi
 	}
 
 	cmd := exec.Command(
-		"docker-compose", "-f", composeFile.Name(), "up", "--abort-on-container-exit",
+		"docker-compose", "-f", composeFile.Name(), "up", //"--abort-on-container-exit",
 	)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

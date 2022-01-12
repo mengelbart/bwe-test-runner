@@ -68,7 +68,6 @@ func (s *TrafficShaper) run(ctx context.Context) error {
 	if len(s.phases) == 0 {
 		return nil
 	}
-	fmt.Printf("applying phases: %v\n", s.phases)
 	for i, p := range s.phases {
 		lastRate = p.Config.Rate
 		fmt.Fprintf(s.log, "%v, %v\n", time.Now().UnixMilli(), lastRate)

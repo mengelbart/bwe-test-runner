@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/docker/docker v20.10.11+incompatible
 	github.com/mengelbart/syncodec v0.0.0-20220105132658-94ec57e63a65
-	github.com/pion/interceptor v0.1.5-0.20220111135135-90ebe6ebb456
+	github.com/pion/interceptor v0.1.6-0.20220112141211-c76b294bd56e
 	github.com/pion/logging v0.2.2
 	github.com/pion/rtcp v1.2.9
 	github.com/pion/rtp v1.7.4
@@ -54,7 +54,3 @@ require (
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
-
-replace github.com/pion/interceptor v0.1.5-0.20220111135135-90ebe6ebb456 => ../../pion/interceptor
-
-replace github.com/pion/transport v0.13.0 => ../../pion/transport
