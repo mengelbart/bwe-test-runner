@@ -7,7 +7,7 @@ import matplotlib.dates as mdates
 import argparse
 
 from glob import glob
-from matplotlib.ticker import EngFormatter
+from matplotlib.ticker import PercentFormatter, EngFormatter
 from jinja2 import Environment, FileSystemLoader
 
 class rates_plot:
@@ -25,6 +25,23 @@ class rates_plot:
                 names = ['time', 'rate'],
                 header = None,
                 usecols = [0, 6],
+            )
+        df.index = pd.to_datetime(df.index - basetime, unit='ms')
+        df['rate'] = df['rate'].apply(lambda x: x * 8)
+        df = df.resample('1s').sum()
+        l, = self.ax.plot(df.index, df.values, label=label, linewidth=0.5)
+        self.labels.append(l)
+        return True
+
+    def add_rctp(self, file, basetime, label):
+        if not os.path.exists(file):
+            return False
+        df = pd.read_csv(
+                file,
+                index_col = 0,
+                names = ['time', 'rate'],
+                header = None,
+                usecols = [0, 1],
             )
         df.index = pd.to_datetime(df.index - basetime, unit='ms')
         df['rate'] = df['rate'].apply(lambda x: x * 8)
@@ -74,6 +91,69 @@ class rates_plot:
         self.ax.yaxis.set_major_formatter(EngFormatter(unit='bit/s'))
 
         plt.savefig(os.path.join(path, self.name + '.png'))
+
+class gcc_plot:
+    def __init__(self, name):
+        self.name = name
+        self.rtt_fig, self.rtt_ax = plt.subplots(figsize=(8,2), dpi=400)
+        self.rtt_labels = []
+        self.estimate_fig, self.estimate_ax = plt.subplots(figsize=(8,2), dpi=400)
+        self.estimate_labels = []
+        self.loss_fig, self.loss_ax = plt.subplots(figsize=(8,2), dpi=400)
+        self.loss_labels = []
+
+    def add(self, file, basetime):
+        if not os.path.exists(file):
+            return False
+        df = pd.read_csv(
+                file,
+                index_col = 0,
+                names = ['time', 'averageLoss', 'measurement', 'estimate', 'threshold', 'rtt'],
+                header = None,
+                usecols = [0, 3, 5, 6, 7, 8]
+            )
+        df.index = pd.to_datetime(df.index - basetime, unit='ms')
+
+        l, = self.rtt_ax.plot(df.index, df['rtt'], label='RTT', linewidth=0.5)
+        self.rtt_labels.append(l)
+
+        l0, = self.estimate_ax.plot(df.index, df['estimate'], label='Estimate', linewidth=0.5)
+        l1, = self.estimate_ax.plot(df.index, df['threshold'], label='Threshold', linewidth=0.5)
+        l2, = self.estimate_ax.plot(df.index, -df['threshold'], label='-Threshold', linewidth=0.5)
+        l3, = self.estimate_ax.plot(df.index, df['measurement'], label='Measurement', linewidth=0.5)
+        self.estimate_labels.append(l0)
+        self.estimate_labels.append(l1)
+        self.estimate_labels.append(l2)
+        self.estimate_labels.append(l3)
+
+        l, = self.loss_ax.plot(df.index, df['averageLoss'], label='Average Loss', linewidth=0.5)
+        self.loss_labels.append(l)
+        return True
+
+    def plot(self, path):
+        self.rtt_ax.set_xlabel('Time')
+        self.rtt_ax.set_ylabel('RTT')
+        self.rtt_ax.set_title(self.name + ' RTT')
+        self.rtt_ax.legend(handles=self.rtt_labels)
+        self.rtt_ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
+        self.rtt_ax.yaxis.set_major_formatter(EngFormatter(unit='ms'))
+        self.rtt_fig.savefig(os.path.join(path, self.name + '-rtt.png'))
+
+        self.estimate_ax.set_xlabel('Time')
+        self.estimate_ax.set_ylabel('Estimate')
+        self.estimate_ax.set_title(self.name + ' Estimate')
+        self.estimate_ax.legend(handles=self.estimate_labels)
+        self.estimate_ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
+        self.estimate_ax.yaxis.set_major_formatter(EngFormatter(unit='ms'))
+        self.estimate_fig.savefig(os.path.join(path, self.name + '-estimate.png'))
+
+        self.loss_ax.set_xlabel('Time')
+        self.loss_ax.set_ylabel('Loss')
+        self.loss_ax.set_title(self.name + ' Loss')
+        self.loss_ax.legend(handles=self.loss_labels)
+        self.loss_ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
+        self.loss_ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
+        self.loss_fig.savefig(os.path.join(path, self.name + '-loss.png'))
 
 class scream_plot:
     def __init__(self, name):
@@ -375,7 +455,7 @@ def main():
     match args.plot:
         case 'rates':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
-            plot = rates_plot(args.name + '-' + args.plot)
+            plot = rates_plot(args.name + '-rtp-' + args.plot)
             plot.add_rtp(os.path.join(args.input_dir, 'send_log', 'rtp_out.log'), basetime, 'RTP sent')
             plot.add_rtp(os.path.join(args.input_dir, 'receive_log', 'rtp_in.log'), basetime, 'RTP received')
             plot.add_cc(os.path.join(args.input_dir, 'send_log', 'gcc.log'), basetime)
@@ -383,6 +463,17 @@ def main():
             plot.add_cc(os.path.join(args.input_dir, 'send_log', 'cc.log'), basetime)
             plot.add_router(args.router, basetime)
             plot.plot(args.output_dir)
+
+            plot = rates_plot(args.name + '-rtcp-' + args.plot)
+            plot.add_rctp(os.path.join(args.input_dir, 'receive_log', 'rtcp_out.log'), basetime, 'RTCP sent')
+            plot.add_rctp(os.path.join(args.input_dir, 'send_log', 'rtcp_in.log'), basetime, 'RTCP received')
+            plot.plot(args.output_dir)
+
+        case 'gcc':
+            basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
+            plot = gcc_plot(args.name + '-' + args.plot)
+            if plot.add(os.path.join(args.input_dir, 'send_log', 'gcc.log'), basetime):
+                plot.plot(args.output_dir)
 
         case 'scream':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000

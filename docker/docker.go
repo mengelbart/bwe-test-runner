@@ -89,6 +89,7 @@ var TestCases = map[string]TestCase{
 
 			for _, plot := range []string{
 				"rates",
+				"gcc",
 				"html",
 			} {
 				plotCMD := exec.Command(
@@ -173,6 +174,7 @@ var TestCases = map[string]TestCase{
 			} {
 				for _, plot := range []string{
 					"rates",
+					"gcc",
 					"html",
 				} {
 					if err := os.MkdirAll(plotDir, 0755); err != nil {
@@ -282,6 +284,7 @@ var TestCases = map[string]TestCase{
 			} {
 				for _, plot := range []string{
 					"rates",
+					"gcc",
 					"html",
 				} {
 					if err := os.MkdirAll(plotDir, 0755); err != nil {
@@ -330,6 +333,7 @@ var TestCases = map[string]TestCase{
 
 			for plot, direction := range map[string]string{
 				"rates": "forward_0",
+				"gcc":   "forward_0",
 				"tcp":   "forward_1",
 			} {
 				plotCMD := exec.Command(
