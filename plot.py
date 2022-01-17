@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 import os
 import json
+import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-import argparse
+import datetime as dt
 
 from glob import glob
 from matplotlib.ticker import PercentFormatter, EngFormatter
@@ -14,7 +15,7 @@ class rates_plot:
     def __init__(self, name):
         self.name = name
         self.labels = []
-        self.fig, self.ax = plt.subplots(figsize=(8,2), dpi=400)
+        self.fig, self.ax = plt.subplots(figsize=(8,3), dpi=400)
 
     def add_rtp(self, file, basetime, label):
         if not os.path.exists(file):
@@ -82,15 +83,20 @@ class rates_plot:
         self.labels.append(l)
         return True
 
-    def plot(self, path):
-        plt.xlabel('time')
-        plt.ylabel('rate')
-        self.ax.legend(handles=self.labels)
+    def plot(self, path, prefix):
+        self.ax.set_xlabel('Time')
+        self.ax.set_ylabel('Rate')
         self.ax.set_title(self.name)
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.ax.yaxis.set_major_formatter(EngFormatter(unit='bit/s'))
+        self.ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1,
+            minute=1, second=45)])
+        self.ax.set_ylim([0, 2600000])
+        lgd = self.ax.legend(handles = self.labels, loc='upper right', bbox_to_anchor=(0.75, 1))
+        #lgd = self.ax.legend(handles = self.labels, loc='upper center', bbox_to_anchor=(0.5, -0.5), ncol=len(self.labels))
+        self.fig.tight_layout()
 
-        plt.savefig(os.path.join(path, self.name + '.png'))
+        self.fig.savefig(os.path.join(path, prefix + '.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
 class gcc_plot:
     def __init__(self, name):
@@ -130,30 +136,35 @@ class gcc_plot:
         self.loss_labels.append(l)
         return True
 
-    def plot(self, path):
+    def plot(self, path, prefix):
         self.rtt_ax.set_xlabel('Time')
         self.rtt_ax.set_ylabel('RTT')
         self.rtt_ax.set_title(self.name + ' RTT')
-        self.rtt_ax.legend(handles=self.rtt_labels)
         self.rtt_ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.rtt_ax.yaxis.set_major_formatter(EngFormatter(unit='ms'))
-        self.rtt_fig.savefig(os.path.join(path, self.name + '-rtt.png'))
+        self.rtt_ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
+        lgd = self.rtt_ax.legend(handles = self.rtt_labels, loc='upper right', bbox_to_anchor=(0.75, 1))
+        self.rtt_fig.savefig(os.path.join(path, prefix + '-rtt.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
         self.estimate_ax.set_xlabel('Time')
         self.estimate_ax.set_ylabel('Estimate')
         self.estimate_ax.set_title(self.name + ' Estimate')
-        self.estimate_ax.legend(handles=self.estimate_labels)
         self.estimate_ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.estimate_ax.yaxis.set_major_formatter(EngFormatter(unit='ms'))
-        self.estimate_fig.savefig(os.path.join(path, self.name + '-estimate.png'))
+        self.estimate_ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
+        lgd = self.estimate_ax.legend(handles = self.estimate_labels, loc='upper right', bbox_to_anchor=(0.75, 1))
+        self.estimate_fig.tight_layout()
+        self.estimate_fig.savefig(os.path.join(path, prefix + '-estimate.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
         self.loss_ax.set_xlabel('Time')
         self.loss_ax.set_ylabel('Loss')
         self.loss_ax.set_title(self.name + ' Loss')
-        self.loss_ax.legend(handles=self.loss_labels)
         self.loss_ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.loss_ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
-        self.loss_fig.savefig(os.path.join(path, self.name + '-loss.png'))
+        self.loss_ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
+        lgd = self.loss_ax.legend(handles = self.loss_labels, loc='upper right', bbox_to_anchor=(0.75, 1))
+        self.loss_fig.tight_layout()
+        self.loss_fig.savefig(os.path.join(path, prefix + '-loss.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
 class scream_plot:
     def __init__(self, name):
@@ -200,32 +211,36 @@ class scream_plot:
         self.rates_labels.append(l2)
         return True
 
-    def plot(self, path):
+    def plot(self, path, prefix):
         self.in_flight_ax.set_xlabel('Time')
         self.in_flight_ax.set_ylabel('In flight')
-        self.in_flight_ax.set_title(self.name + ' in flight')
-        self.in_flight_ax.legend(handles=self.in_flight_labels)
+        self.in_flight_ax.set_title('Bytes in Flight ' + self.name)
         self.in_flight_ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.in_flight_ax.yaxis.set_major_formatter(EngFormatter(unit='Byte'))
-        self.in_flight_fig.savefig(os.path.join(path, self.name + '-in-flight.png'))
+        self.in_flight_ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
+        lgd = self.in_flight_ax.legend(handles = self.in_flight_labels, loc='upper right', bbox_to_anchor=(0.75, 1))
+        self.in_flight_fig.tight_layout()
+        self.in_flight_fig.savefig(os.path.join(path, prefix + '-in-flight.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
         self.rates_ax.set_xlabel('Time')
         self.rates_ax.set_ylabel('Rate')
-        self.rates_ax.set_title(self.name + ' rates')
-        self.rates_ax.legend(handles=self.rates_labels)
+        self.rates_ax.set_title('Rates ' + self.name)
         self.rates_ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
-        self.rates_ax.yaxis.set_major_formatter(EngFormatter(unit='bit/s'))
-        self.rates_fig.savefig(os.path.join(path, self.name + '-rates.png'))
+        self.rates_ax.yaxis.set_major_formatter(EngFormatter(unit='kbit/s'))
+        self.rates_ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
+        lgd = self.rates_ax.legend(handles = self.rates_labels, loc='upper right', bbox_to_anchor=(0.75, 1))
+        self.rates_fig.tight_layout()
+        self.rates_fig.savefig(os.path.join(path, prefix + '-rates.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
         self.delay_ax.set_xlabel('Time')
         self.delay_ax.set_ylabel('Delay')
-        self.delay_ax.set_title(self.name + ' delay')
-        self.delay_ax.legend(handles=self.delay_labels)
+        self.delay_ax.set_title('Delay ' + self.name)
         self.delay_ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.delay_ax.yaxis.set_major_formatter(EngFormatter(unit='s'))
-        self.delay_fig.savefig(os.path.join(path, self.name + '-delay.png'))
-
-
+        self.delay_ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
+        lgd = self.delay_ax.legend(handles = self.delay_labels, loc='upper right', bbox_to_anchor=(0.75, 1))
+        self.delay_fig.tight_layout()
+        self.delay_fig.savefig(os.path.join(path, prefix + '-delay.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
 class qlog_cwnd_plot:
     def __init__(self, name):
@@ -260,16 +275,16 @@ class qlog_cwnd_plot:
         self.labels.append(l)
         return True
 
-    def plot(self, path):
-        plt.xlabel('Time')
-        plt.ylabel('CWND')
-
-        self.ax.legend(handles=self.labels)
+    def plot(self, path, prefix):
+        self.ax.set_xlabel('Time')
+        self.ax.set_ylabel('CWND')
         self.ax.set_title(self.name)
-        self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.ax.yaxis.set_major_formatter(EngFormatter(unit='Bytes'))
-
-        plt.savefig(os.path.join(path, self.name + '.png'))
+        self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
+        self.ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
+        lgd = self.ax.legend(handles = self.labels, loc='upper right', bbox_to_anchor=(0.75, 1))
+        self.fig.tight_layout()
+        self.fig.savefig(os.path.join(path, prefix + '.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
 class qlog_bytes_sent_plot:
     def __init__(self, name):
@@ -324,17 +339,18 @@ class qlog_bytes_sent_plot:
 
         return True
 
-    def plot(self, path):
-        plt.xlabel('Time')
-        plt.ylabel('Bytes in Flight')
+    def plot(self, path, prefix):
+        self.ax.set_xlabel('Time')
+        self.ax.set_ylabel('Bytes in Flight')
 
         self.ax.set_title(self.name)
-        self.ax.legend(handles=self.labels)
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.ax.yaxis.set_major_formatter(EngFormatter(unit='bit/s'))
+        self.ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
 
-        plt.savefig(os.path.join(path, self.name + '.png'))
-
+        lgd = self.ax.legend(handles = self.labels, loc='upper right', bbox_to_anchor=(0.75, 1))
+        self.fig.tight_layout()
+        self.fig.savefig(os.path.join(path, prefix + '.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
 class qlog_rtt_plot:
     def __init__(self, name):
@@ -371,16 +387,18 @@ class qlog_rtt_plot:
         self.labels.append(l)
         return True
 
-    def plot(self, path):
-        plt.xlabel('Time')
-        plt.ylabel('RTT')
+    def plot(self, path, prefix):
+        self.ax.set_xlabel('Time')
+        self.ax.set_ylabel('RTT')
 
         self.ax.set_title(self.name)
-        self.ax.legend(handles=self.labels)
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.ax.yaxis.set_major_formatter(EngFormatter(unit='ms'))
+        self.ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
 
-        plt.savefig(os.path.join(path, self.name + '.png'))
+        lgd = self.ax.legend(handles = self.labels, loc='upper right', bbox_to_anchor=(0.75, 1))
+        self.fig.tight_layout()
+        self.fig.savefig(os.path.join(path, prefix + '.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
 class tcp_plot:
     def __init__(self, name):
@@ -419,16 +437,17 @@ class tcp_plot:
         self.labels.append(l)
         return True
 
-    def plot(self, path):
-        plt.xlabel('Time')
-        plt.ylabel('Rate')
-
+    def plot(self, path, prefix):
+        self.ax.set_xlabel('Time')
+        self.ax.set_ylabel('Rate')
         self.ax.set_title(self.name)
-        self.ax.legend(handles=self.labels)
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.ax.yaxis.set_major_formatter(EngFormatter(unit='bit/s'))
+        self.ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
 
-        plt.savefig(os.path.join(path, self.name + '-plot.png'))
+        lgd = self.ax.legend(handles = self.labels, loc='upper right', bbox_to_anchor=(0.75, 1))
+        self.fig.tight_layout()
+        self.fig.savefig(os.path.join(path, prefix + '.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
 def generate_html(path):
     images = [os.path.basename(x) for x in glob(os.path.join(path, '*.png'))]
@@ -455,82 +474,82 @@ def main():
     match args.plot:
         case 'rates':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
-            plot = rates_plot(args.name + '-rtp-' + args.plot)
+            plot = rates_plot('RTP Rates ' + args.name)
             plot.add_rtp(os.path.join(args.input_dir, 'send_log', 'rtp_out.log'), basetime, 'RTP sent')
             plot.add_rtp(os.path.join(args.input_dir, 'receive_log', 'rtp_in.log'), basetime, 'RTP received')
             plot.add_cc(os.path.join(args.input_dir, 'send_log', 'gcc.log'), basetime)
             plot.add_cc(os.path.join(args.input_dir, 'send_log', 'scream.log'), basetime)
             plot.add_cc(os.path.join(args.input_dir, 'send_log', 'cc.log'), basetime)
             plot.add_router(args.router, basetime)
-            plot.plot(args.output_dir)
+            plot.plot(args.output_dir, args.name + '-rtp-' + args.plot)
 
-            plot = rates_plot(args.name + '-rtcp-' + args.plot)
+            plot = rates_plot('RTCP Rates ' + args.name)
             plot.add_rctp(os.path.join(args.input_dir, 'receive_log', 'rtcp_out.log'), basetime, 'RTCP sent')
             plot.add_rctp(os.path.join(args.input_dir, 'send_log', 'rtcp_in.log'), basetime, 'RTCP received')
-            plot.plot(args.output_dir)
+            plot.plot(args.output_dir, args.name + '-rtcp-' + args.plot)
 
         case 'gcc':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
-            plot = gcc_plot(args.name + '-' + args.plot)
+            plot = gcc_plot('GCC ' + args.name)
             if plot.add(os.path.join(args.input_dir, 'send_log', 'gcc.log'), basetime):
-                plot.plot(args.output_dir)
+                plot.plot(args.output_dir, args.name + '-gcc')
 
         case 'scream':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
-            plot = scream_plot(args.name + '-' + args.plot)
+            plot = scream_plot('SCReAM ' + args.name)
             if plot.add_scream(os.path.join(args.input_dir, 'send_log', 'scream.log'), basetime):
-                plot.plot(args.output_dir)
+                plot.plot(args.output_dir, args.name + '-scream')
 
         case 'qlog-cwnd':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
             qlog_files = glob(os.path.join(args.input_dir, 'send_log', '*.qlog'))
-            plot = qlog_cwnd_plot(args.name + '-' + args.plot + '-sender')
+            plot = qlog_cwnd_plot('QLOG Sender CWND' + args.name)
             if len(qlog_files) > 0:
                 if plot.add_cwnd(qlog_files[0]):
-                    plot.plot(args.output_dir)
+                    plot.plot(args.output_dir, args.name + '-qlog-sender-cwnd')
 
             qlog_files = glob(os.path.join(args.input_dir, 'receive_log', '*.qlog'))
-            plot = qlog_cwnd_plot(args.name + '-' + args.plot + '-receiver')
+            plot = qlog_cwnd_plot('QLOG Receiver CWND' + args.name)
             if len(qlog_files) > 0:
                 if plot.add_cwnd(qlog_files[0]):
-                    plot.plot(args.output_dir)
+                    plot.plot(args.output_dir, args.name + '-qlog-receiver-cwnd')
 
         case 'qlog-bytes-sent':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
             qlog_files = glob(os.path.join(args.input_dir, 'send_log', '*.qlog'))
-            plot = qlog_bytes_sent_plot(args.name + '-' + args.plot + '-sender')
+            plot = qlog_bytes_sent_plot('QLOG Sender Bytes Sent' + args.name)
             if len(qlog_files) > 0:
                 if plot.add_bytes_sent(qlog_files[0]):
-                    plot.plot(args.output_dir)
+                    plot.plot(args.output_dir, args.name + '-qlog-sender-sent')
 
             qlog_files = glob(os.path.join(args.input_dir, 'receive_log', '*.qlog'))
-            plot = qlog_bytes_sent_plot(args.name + '-' + args.plot + '-receiver')
+            plot = qlog_bytes_sent_plot('QLOG Receiver Bytes Sent' + args.name)
             if len(qlog_files) > 0:
                 if plot.add_bytes_sent(qlog_files[0]):
-                    plot.plot(args.output_dir)
+                    plot.plot(args.output_dir, args.name + '-qlog-receiver-sent')
 
         case 'qlog-rtt':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
             qlog_files = glob(os.path.join(args.input_dir, 'send_log', '*.qlog'))
-            plot = qlog_rtt_plot(args.name + '-' + args.plot + '-sender')
+            plot = qlog_rtt_plot('QLOG Sender RTT ' + args.name)
             if len(qlog_files) > 0:
                 if plot.add_rtt(qlog_files[0]):
-                    plot.plot(args.output_dir)
+                    plot.plot(args.output_dir, args.name + '-qlog-sender-rtt')
 
             qlog_files = glob(os.path.join(args.input_dir, 'receive_log', '*.qlog'))
-            plot = qlog_rtt_plot(args.name + '-' + args.plot + '-receiver')
+            plot = qlog_rtt_plot('QLOG Receiver RTT ' + args.name)
             if len(qlog_files) > 0:
                 if plot.add_rtt(qlog_files[0]):
-                    plot.plot(args.output_dir)
+                    plot.plot(args.output_dir, args.name + '-qlog-receiver-rtt')
 
         case 'tcp':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
-            plot = tcp_plot(args.name + '-' + args.plot)
+            plot = tcp_plot('TCP ' + args.name)
             plot.add_router(args.router, basetime)
             found_sent = plot.add(os.path.join(args.input_dir, 'send_log', 'tcp.log'), 'TCP sent')
             found_received = plot.add(os.path.join(args.input_dir, 'receive_log', 'tcp.log'), 'TCP received')
             if found_sent or found_received:
-                plot.plot(args.output_dir)
+                plot.plot(args.output_dir, args.name + '-tcp')
 
         case 'html':
             generate_html(args.output_dir)

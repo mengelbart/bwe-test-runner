@@ -35,6 +35,22 @@ func ImplementationList() []string {
 	return res
 }
 
+func prettyPrint(s string) string {
+	switch s {
+	case "forward":
+		return "Forward Path"
+	case "forward_0":
+		return "Forward Path (0)"
+	case "forward_1":
+		return "Forward Path (1)"
+	case "backward_0":
+		return "Backward Path (0)"
+	case "backward_1":
+		return "Backward Path (1)"
+	}
+	return s
+}
+
 var TestCases = map[string]TestCase{
 	"VariableAvailableCapacitySingleFlow": {
 		composeFileString: composeFileStringOne,
@@ -89,13 +105,17 @@ var TestCases = map[string]TestCase{
 
 			for _, plot := range []string{
 				"rates",
+				"qlog-cwnd",
+				"qlog-bytes-sent",
+				"qlog-rtt",
+				"scream",
 				"gcc",
 				"html",
 			} {
 				plotCMD := exec.Command(
 					"./plot.py",
 					plot,
-					"--name", "forward_0",
+					"--name", prettyPrint("forward_0"),
 					"--input_dir", path.Join(outputDir, "forward_0"),
 					"--output_dir", plotDir,
 					"--basetime", fmt.Sprintf("%v", basetime),
@@ -174,6 +194,10 @@ var TestCases = map[string]TestCase{
 			} {
 				for _, plot := range []string{
 					"rates",
+					"qlog-cwnd",
+					"qlog-bytes-sent",
+					"qlog-rtt",
+					"scream",
 					"gcc",
 					"html",
 				} {
@@ -183,7 +207,7 @@ var TestCases = map[string]TestCase{
 					plotCMD := exec.Command(
 						"./plot.py",
 						plot,
-						"--name", direction,
+						"--name", prettyPrint(direction),
 						"--input_dir", path.Join(outputDir, direction),
 						"--output_dir", plotDir,
 						"--basetime", fmt.Sprintf("%v", basetime),
@@ -284,6 +308,10 @@ var TestCases = map[string]TestCase{
 			} {
 				for _, plot := range []string{
 					"rates",
+					"qlog-cwnd",
+					"qlog-bytes-sent",
+					"qlog-rtt",
+					"scream",
 					"gcc",
 					"html",
 				} {
@@ -293,7 +321,7 @@ var TestCases = map[string]TestCase{
 					plotCMD := exec.Command(
 						"./plot.py",
 						plot,
-						"--name", direction,
+						"--name", prettyPrint(direction),
 						"--input_dir", path.Join(outputDir, direction),
 						"--output_dir", plotDir,
 						"--basetime", fmt.Sprintf("%v", basetime),
@@ -332,14 +360,18 @@ var TestCases = map[string]TestCase{
 			}
 
 			for plot, direction := range map[string]string{
-				"rates": "forward_0",
-				"gcc":   "forward_0",
-				"tcp":   "forward_1",
+				"rates":           "forward_0",
+				"qlog-cwnd":       "forward_0",
+				"qlog-bytes-sent": "forward_0",
+				"qlog-rtt":        "forward_0",
+				"scream":          "forward_0",
+				"gcc":             "forward_0",
+				"tcp":             "forward_1",
 			} {
 				plotCMD := exec.Command(
 					"./plot.py",
 					plot,
-					"--name", direction,
+					"--name", prettyPrint(direction),
 					"--input_dir", path.Join(outputDir, direction),
 					"--output_dir", plotDir,
 					"--basetime", fmt.Sprintf("%v", basetime),
@@ -381,6 +413,60 @@ var Implementations = map[string]Implementation{
 		senderArgs:   "",
 		receiver:     "engelbart/bwe-test-pion",
 		receiverArgs: "",
+	},
+	"rtp-over-quic-udp-gcc": {
+		sender:       "engelbart/rtp-over-quic",
+		senderArgs:   "--transport udp --cc-dump /log/gcc.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --gcc --codec h264 --source /input/input.y4m",
+		receiver:     "engelbart/rtp-over-quic",
+		receiverArgs: "--transport udp --rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --twcc --codec h264 --sink /output/output.mkv",
+	},
+	"rtp-over-quic-udp-scream": {
+		sender:       "engelbart/rtp-over-quic",
+		senderArgs:   "--transport udp --cc-dump /log/scream.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --scream --codec h264 --source /input/input.y4m",
+		receiver:     "engelbart/rtp-over-quic",
+		receiverArgs: "--transport udp --rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --rfc8888 --codec h264 --sink /output/output.mkv",
+	},
+	"rtp-over-quic-gcc": {
+		sender:       "engelbart/rtp-over-quic",
+		senderArgs:   "--cc-dump /log/gcc.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --gcc --codec h264 --source /input/input.y4m",
+		receiver:     "engelbart/rtp-over-quic",
+		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --twcc --codec h264 --sink /output/output.mkv",
+	},
+	"rtp-over-quic-scream": {
+		sender:       "engelbart/rtp-over-quic",
+		senderArgs:   "--cc-dump /log/scream.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --scream --codec h264 --source /input/input.y4m",
+		receiver:     "engelbart/rtp-over-quic",
+		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --rfc8888 --codec h264 --sink /output/output.mkv",
+	},
+	"rtp-over-quic-gcc-newreno": {
+		sender:       "engelbart/rtp-over-quic",
+		senderArgs:   "--cc-dump /log/gcc.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --gcc --newreno --codec h264 --source /input/input.y4m",
+		receiver:     "engelbart/rtp-over-quic",
+		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --twcc --codec h264 --sink /output/output.mkv",
+	},
+	"rtp-over-quic-scream-newreno": {
+		sender:       "engelbart/rtp-over-quic",
+		senderArgs:   "--cc-dump /log/scream.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --scream --newreno --codec h264 --source /input/input.y4m",
+		receiver:     "engelbart/rtp-over-quic",
+		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --rfc8888 --codec h264 --sink /output/output.mkv",
+	},
+	"rtp-over-quic-scream-local-feedback": {
+		sender:       "engelbart/rtp-over-quic",
+		senderArgs:   "--cc-dump /log/scream.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --scream --local-rfc8888 --codec h264 --source /input/input.y4m",
+		receiver:     "engelbart/rtp-over-quic",
+		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --codec h264 --sink /output/output.mkv",
+	},
+	"rtp-over-quic-gcc-newreno-stream": {
+		sender:       "engelbart/rtp-over-quic",
+		senderArgs:   "--cc-dump /log/gcc.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --gcc --newreno --codec h264 --source /input/input.y4m --stream",
+		receiver:     "engelbart/rtp-over-quic",
+		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --twcc --codec h264 --sink /output/output.mkv",
+	},
+	"rtp-over-quic-scream-newreno-stream": {
+		sender:       "engelbart/rtp-over-quic",
+		senderArgs:   "--cc-dump /log/scream.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --scream --newreno --codec h264 --source /input/input.y4m --stream",
+		receiver:     "engelbart/rtp-over-quic",
+		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --rfc8888 --codec h264 --sink /output/output.mkv",
 	},
 }
 
