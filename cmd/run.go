@@ -52,7 +52,7 @@ func run() error {
 
 	tc := docker.TestCases[testcaseFlag]
 	go func() {
-		errCh <- tc.Run(ctx, implementationFlag, outputDir)
+		errCh <- tc.Run(ctx, implementationFlag, "input.y4m", outputDir)
 	}()
 
 	sigs := make(chan os.Signal, 1)
@@ -71,7 +71,7 @@ func run() error {
 		return err
 	}
 
-	if err := tc.Plot(outputDir, plotDir, basetime); err != nil {
+	if err := tc.Plot("input.y4m", outputDir, plotDir, basetime); err != nil {
 		return err
 	}
 	return nil

@@ -16,7 +16,7 @@ type TestCase struct {
 	duration          time.Duration
 	leftRouter        []tcPhase
 	rightRouter       []tcPhase
-	plotFunc          func(outputDir, plotDir string, basetime int64) error
+	plotFunc          func(input, outputDir, plotDir string, basetime int64) error
 }
 
 func TestCaseList() []string {
@@ -51,8 +51,113 @@ func prettyPrint(s string) string {
 	return s
 }
 
+// TODO: Remove video metrics hack
+func calculateVideoMetrics(mediaSrc, mediaDst, logDir string) error {
+	ffmpeg := exec.Command(
+		"ffmpeg",
+		"-i",
+		mediaDst,
+		"-i",
+		mediaSrc,
+		"-lavfi",
+		fmt.Sprintf("ssim=%v/ssim.log:eof_action=endall;[0:v][1:v]psnr=%v/psnr.log:eof_action=endall", logDir, logDir),
+		"-f",
+		"null",
+		"-",
+	)
+	log.Println(ffmpeg.Args)
+	ffmpeg.Stdout = os.Stdout
+	ffmpeg.Stderr = os.Stderr
+	return ffmpeg.Run()
+}
+
 var TestCases = map[string]TestCase{
-	"VariableAvailableCapacitySingleFlow": {
+	"VariableAvailableCapacitySingleFlow1msOWD": {
+		composeFileString: composeFileStringOne,
+		duration:          100 * time.Second,
+		leftRouter: []tcPhase{
+			{
+				Duration: 40 * time.Second,
+				Config: tcConfig{
+					Delay:   1 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "1000000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+			{
+				Duration: 20 * time.Second,
+				Config: tcConfig{
+					Delay:   1 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "2500000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+			{
+				Duration: 20 * time.Second,
+				Config: tcConfig{
+					Delay:   1 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "600000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+			{
+				Duration: 20 * time.Second,
+				Config: tcConfig{
+					Delay:   1 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "1000000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+		},
+		rightRouter: []tcPhase{},
+		plotFunc: func(input, outputDir, plotDir string, basetime int64) error {
+			if err := os.MkdirAll(plotDir, 0755); err != nil {
+				return err
+			}
+
+			if err := calculateVideoMetrics(fmt.Sprintf("./input/%v", input), fmt.Sprintf("%v/forward_0/sink/output.y4m", outputDir), fmt.Sprintf("%v/forward_0", outputDir)); err != nil {
+				return err
+			}
+
+			for _, plot := range []string{
+				"rates",
+				"psnr",
+				"ssim",
+				"qlog-cwnd",
+				"qlog-bytes-sent",
+				"qlog-rtt",
+				"scream",
+				"gcc",
+				"html",
+			} {
+				plotCMD := exec.Command(
+					"./plot.py",
+					plot,
+					"--name", prettyPrint("forward_0"),
+					"--input_dir", path.Join(outputDir, "forward_0"),
+					"--output_dir", path.Join(plotDir, "forward_0"),
+					"--basetime", fmt.Sprintf("%v", basetime),
+					"--router", path.Join(outputDir, "leftrouter.log"),
+				)
+				fmt.Println(plotCMD.Args)
+				plotCMD.Stderr = os.Stderr
+				plotCMD.Stdout = os.Stdout
+				if err := plotCMD.Run(); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+	},
+	"VariableAvailableCapacitySingleFlow50msOWD": {
 		composeFileString: composeFileStringOne,
 		duration:          100 * time.Second,
 		leftRouter: []tcPhase{
@@ -98,13 +203,19 @@ var TestCases = map[string]TestCase{
 			},
 		},
 		rightRouter: []tcPhase{},
-		plotFunc: func(outputDir, plotDir string, basetime int64) error {
+		plotFunc: func(input, outputDir, plotDir string, basetime int64) error {
 			if err := os.MkdirAll(plotDir, 0755); err != nil {
+				return err
+			}
+
+			if err := calculateVideoMetrics(fmt.Sprintf("./input/%v", input), fmt.Sprintf("%v/forward_0/sink/output.y4m", outputDir), fmt.Sprintf("%v/forward_0", outputDir)); err != nil {
 				return err
 			}
 
 			for _, plot := range []string{
 				"rates",
+				"psnr",
+				"ssim",
 				"qlog-cwnd",
 				"qlog-bytes-sent",
 				"qlog-rtt",
@@ -117,7 +228,177 @@ var TestCases = map[string]TestCase{
 					plot,
 					"--name", prettyPrint("forward_0"),
 					"--input_dir", path.Join(outputDir, "forward_0"),
-					"--output_dir", plotDir,
+					"--output_dir", path.Join(plotDir, "forward_0"),
+					"--basetime", fmt.Sprintf("%v", basetime),
+					"--router", path.Join(outputDir, "leftrouter.log"),
+				)
+				fmt.Println(plotCMD.Args)
+				plotCMD.Stderr = os.Stderr
+				plotCMD.Stdout = os.Stdout
+				if err := plotCMD.Run(); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+	},
+	"VariableAvailableCapacitySingleFlow150msOWD": {
+		composeFileString: composeFileStringOne,
+		duration:          100 * time.Second,
+		leftRouter: []tcPhase{
+			{
+				Duration: 40 * time.Second,
+				Config: tcConfig{
+					Delay:   150 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "1000000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+			{
+				Duration: 20 * time.Second,
+				Config: tcConfig{
+					Delay:   150 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "2500000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+			{
+				Duration: 20 * time.Second,
+				Config: tcConfig{
+					Delay:   150 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "600000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+			{
+				Duration: 20 * time.Second,
+				Config: tcConfig{
+					Delay:   150 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "1000000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+		},
+		rightRouter: []tcPhase{},
+		plotFunc: func(input, outputDir, plotDir string, basetime int64) error {
+			if err := os.MkdirAll(plotDir, 0755); err != nil {
+				return err
+			}
+
+			if err := calculateVideoMetrics(fmt.Sprintf("./input/%v", input), fmt.Sprintf("%v/forward_0/sink/output.y4m", outputDir), fmt.Sprintf("%v/forward_0", outputDir)); err != nil {
+				return err
+			}
+
+			for _, plot := range []string{
+				"rates",
+				"psnr",
+				"ssim",
+				"qlog-cwnd",
+				"qlog-bytes-sent",
+				"qlog-rtt",
+				"scream",
+				"gcc",
+				"html",
+			} {
+				plotCMD := exec.Command(
+					"./plot.py",
+					plot,
+					"--name", prettyPrint("forward_0"),
+					"--input_dir", path.Join(outputDir, "forward_0"),
+					"--output_dir", path.Join(plotDir, "forward_0"),
+					"--basetime", fmt.Sprintf("%v", basetime),
+					"--router", path.Join(outputDir, "leftrouter.log"),
+				)
+				fmt.Println(plotCMD.Args)
+				plotCMD.Stderr = os.Stderr
+				plotCMD.Stdout = os.Stdout
+				if err := plotCMD.Run(); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+	},
+	"VariableAvailableCapacitySingleFlow300msOWD": {
+		composeFileString: composeFileStringOne,
+		duration:          100 * time.Second,
+		leftRouter: []tcPhase{
+			{
+				Duration: 40 * time.Second,
+				Config: tcConfig{
+					Delay:   300 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "1000000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+			{
+				Duration: 20 * time.Second,
+				Config: tcConfig{
+					Delay:   300 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "2500000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+			{
+				Duration: 20 * time.Second,
+				Config: tcConfig{
+					Delay:   300 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "600000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+			{
+				Duration: 20 * time.Second,
+				Config: tcConfig{
+					Delay:   300 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "1000000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+		},
+		rightRouter: []tcPhase{},
+		plotFunc: func(input, outputDir, plotDir string, basetime int64) error {
+			if err := os.MkdirAll(plotDir, 0755); err != nil {
+				return err
+			}
+
+			if err := calculateVideoMetrics(fmt.Sprintf("./input/%v", input), fmt.Sprintf("%v/forward_0/sink/output.y4m", outputDir), fmt.Sprintf("%v/forward_0", outputDir)); err != nil {
+				return err
+			}
+
+			for _, plot := range []string{
+				"rates",
+				"psnr",
+				"ssim",
+				"qlog-cwnd",
+				"qlog-bytes-sent",
+				"qlog-rtt",
+				"scream",
+				"gcc",
+				"html",
+			} {
+				plotCMD := exec.Command(
+					"./plot.py",
+					plot,
+					"--name", prettyPrint("forward_0"),
+					"--input_dir", path.Join(outputDir, "forward_0"),
+					"--output_dir", path.Join(plotDir, "forward_0"),
 					"--basetime", fmt.Sprintf("%v", basetime),
 					"--router", path.Join(outputDir, "leftrouter.log"),
 				)
@@ -187,13 +468,18 @@ var TestCases = map[string]TestCase{
 			},
 		},
 		rightRouter: []tcPhase{},
-		plotFunc: func(outputDir, plotDir string, basetime int64) error {
+		plotFunc: func(input, outputDir, plotDir string, basetime int64) error {
 			for _, direction := range []string{
 				"forward_0",
 				"forward_1",
 			} {
+				if err := calculateVideoMetrics(fmt.Sprintf("./input/%v", input), fmt.Sprintf("%v/%v/sink/output.y4m", outputDir, direction), fmt.Sprintf("%v/%v", outputDir, direction)); err != nil {
+					return err
+				}
 				for _, plot := range []string{
 					"rates",
+					"psnr",
+					"ssim",
 					"qlog-cwnd",
 					"qlog-bytes-sent",
 					"qlog-rtt",
@@ -209,7 +495,7 @@ var TestCases = map[string]TestCase{
 						plot,
 						"--name", prettyPrint(direction),
 						"--input_dir", path.Join(outputDir, direction),
-						"--output_dir", plotDir,
+						"--output_dir", path.Join(plotDir, direction),
 						"--basetime", fmt.Sprintf("%v", basetime),
 						"--router", path.Join(outputDir, "leftrouter.log"),
 					)
@@ -301,13 +587,18 @@ var TestCases = map[string]TestCase{
 				},
 			},
 		},
-		plotFunc: func(outputDir string, plotDir string, basetime int64) error {
+		plotFunc: func(input, outputDir string, plotDir string, basetime int64) error {
 			for direction, router := range map[string]string{
 				"forward_0":  "leftrouter.log",
 				"backward_0": "rightrouter.log",
 			} {
+				if err := calculateVideoMetrics(fmt.Sprintf("./input/%v", input), fmt.Sprintf("%v/%v/sink/output.y4m", outputDir, direction), fmt.Sprintf("%v/%v", outputDir, direction)); err != nil {
+					return err
+				}
 				for _, plot := range []string{
 					"rates",
+					"psnr",
+					"ssim",
 					"qlog-cwnd",
 					"qlog-bytes-sent",
 					"qlog-rtt",
@@ -323,7 +614,7 @@ var TestCases = map[string]TestCase{
 						plot,
 						"--name", prettyPrint(direction),
 						"--input_dir", path.Join(outputDir, direction),
-						"--output_dir", plotDir,
+						"--output_dir", path.Join(plotDir, direction),
 						"--basetime", fmt.Sprintf("%v", basetime),
 						"--router", path.Join(outputDir, router),
 					)
@@ -354,13 +645,20 @@ var TestCases = map[string]TestCase{
 			},
 		},
 		rightRouter: []tcPhase{},
-		plotFunc: func(outputDir, plotDir string, basetime int64) error {
+		plotFunc: func(input, outputDir, plotDir string, basetime int64) error {
 			if err := os.MkdirAll(plotDir, 0755); err != nil {
+				return err
+			}
+
+			direction := "forward_0"
+			if err := calculateVideoMetrics(fmt.Sprintf("./input/%v", input), fmt.Sprintf("%v/%v/sink/output.y4m", outputDir, direction), fmt.Sprintf("%v/%v", outputDir, direction)); err != nil {
 				return err
 			}
 
 			for plot, direction := range map[string]string{
 				"rates":           "forward_0",
+				"psnr":            "forward_0",
+				"ssim":            "forward_0",
 				"qlog-cwnd":       "forward_0",
 				"qlog-bytes-sent": "forward_0",
 				"qlog-rtt":        "forward_0",
@@ -373,7 +671,7 @@ var TestCases = map[string]TestCase{
 					plot,
 					"--name", prettyPrint(direction),
 					"--input_dir", path.Join(outputDir, direction),
-					"--output_dir", plotDir,
+					"--output_dir", path.Join(plotDir, direction),
 					"--basetime", fmt.Sprintf("%v", basetime),
 					"--router", path.Join(outputDir, "leftrouter.log"),
 				)
@@ -408,76 +706,115 @@ type Implementation struct {
 }
 
 var Implementations = map[string]Implementation{
-	"pion-gcc": {
-		sender:       "engelbart/bwe-test-pion",
-		senderArgs:   "",
-		receiver:     "engelbart/bwe-test-pion",
-		receiverArgs: "",
-	},
+	//"pion-gcc": {
+	//	sender:       "engelbart/bwe-test-pion",
+	//	senderArgs:   "",
+	//	receiver:     "engelbart/bwe-test-pion",
+	//	receiverArgs: "",
+	//},
 	"rtp-over-quic-udp-gcc": {
 		sender:       "engelbart/rtp-over-quic",
-		senderArgs:   "--transport udp --cc-dump /log/gcc.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --gcc --codec h264 --source /input/input.y4m",
+		senderArgs:   "--transport udp --cc-dump /log/gcc.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --gcc --codec h264 --source /input/%v",
 		receiver:     "engelbart/rtp-over-quic",
-		receiverArgs: "--transport udp --rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --twcc --codec h264 --sink /output/output.mkv",
+		receiverArgs: "--transport udp --rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --twcc --codec h264 --sink /output/output.y4m",
 	},
 	"rtp-over-quic-udp-scream": {
 		sender:       "engelbart/rtp-over-quic",
-		senderArgs:   "--transport udp --cc-dump /log/scream.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --scream --codec h264 --source /input/input.y4m",
+		senderArgs:   "--transport udp --cc-dump /log/scream.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --scream --codec h264 --source /input/%v",
 		receiver:     "engelbart/rtp-over-quic",
-		receiverArgs: "--transport udp --rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --rfc8888 --codec h264 --sink /output/output.mkv",
+		receiverArgs: "--transport udp --rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --rfc8888 --codec h264 --sink /output/output.y4m",
+	},
+	"rtp-over-quic-tcp": {
+		sender:       "engelbart/rtp-over-quic",
+		senderArgs:   "--transport tcp --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --codec h264 --source /input/%v",
+		receiver:     "engelbart/rtp-over-quic",
+		receiverArgs: "--transport tcp --rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --codec h264 --sink /output/output.y4m",
+	},
+	"rtp-over-quic-tcp-gcc": {
+		sender:       "engelbart/rtp-over-quic",
+		senderArgs:   "--transport tcp --cc-dump /log/gcc.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --gcc --codec h264 --source /input/%v",
+		receiver:     "engelbart/rtp-over-quic",
+		receiverArgs: "--transport tcp --rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --twcc --codec h264 --sink /output/output.y4m",
+	},
+	"rtp-over-quic-tcp-scream": {
+		sender:       "engelbart/rtp-over-quic",
+		senderArgs:   "--transport tcp --cc-dump /log/scream.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --scream --codec h264 --source /input/%v",
+		receiver:     "engelbart/rtp-over-quic",
+		receiverArgs: "--transport tcp --rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --rfc8888 --codec h264 --sink /output/output.y4m",
 	},
 	"rtp-over-quic-gcc": {
 		sender:       "engelbart/rtp-over-quic",
-		senderArgs:   "--cc-dump /log/gcc.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --gcc --codec h264 --source /input/input.y4m",
+		senderArgs:   "--cc-dump /log/gcc.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --gcc --codec h264 --source /input/%v",
 		receiver:     "engelbart/rtp-over-quic",
-		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --twcc --codec h264 --sink /output/output.mkv",
+		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --twcc --codec h264 --sink /output/output.y4m",
 	},
 	"rtp-over-quic-scream": {
 		sender:       "engelbart/rtp-over-quic",
-		senderArgs:   "--cc-dump /log/scream.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --scream --codec h264 --source /input/input.y4m",
+		senderArgs:   "--cc-dump /log/scream.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --scream --codec h264 --source /input/%v",
 		receiver:     "engelbart/rtp-over-quic",
-		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --rfc8888 --codec h264 --sink /output/output.mkv",
+		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --rfc8888 --codec h264 --sink /output/output.y4m",
 	},
 	"rtp-over-quic-gcc-newreno": {
 		sender:       "engelbart/rtp-over-quic",
-		senderArgs:   "--cc-dump /log/gcc.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --gcc --newreno --codec h264 --source /input/input.y4m",
+		senderArgs:   "--cc-dump /log/gcc.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --gcc --newreno --codec h264 --source /input/%v",
 		receiver:     "engelbart/rtp-over-quic",
-		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --twcc --codec h264 --sink /output/output.mkv",
+		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --twcc --codec h264 --sink /output/output.y4m",
 	},
 	"rtp-over-quic-scream-newreno": {
 		sender:       "engelbart/rtp-over-quic",
-		senderArgs:   "--cc-dump /log/scream.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --scream --newreno --codec h264 --source /input/input.y4m",
+		senderArgs:   "--cc-dump /log/scream.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --scream --newreno --codec h264 --source /input/%v",
 		receiver:     "engelbart/rtp-over-quic",
-		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --rfc8888 --codec h264 --sink /output/output.mkv",
+		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --rfc8888 --codec h264 --sink /output/output.y4m",
 	},
 	"rtp-over-quic-scream-local-feedback": {
 		sender:       "engelbart/rtp-over-quic",
-		senderArgs:   "--cc-dump /log/scream.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --scream --local-rfc8888 --codec h264 --source /input/input.y4m",
+		senderArgs:   "--cc-dump /log/scream.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --scream --local-rfc8888 --codec h264 --source /input/%v",
 		receiver:     "engelbart/rtp-over-quic",
-		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --codec h264 --sink /output/output.mkv",
+		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --codec h264 --sink /output/output.y4m",
+	},
+	"rtp-over-quic-scream-local-feedback-newreno": {
+		sender:       "engelbart/rtp-over-quic",
+		senderArgs:   "--cc-dump /log/scream.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --scream --newreno --local-rfc8888 --codec h264 --source /input/%v",
+		receiver:     "engelbart/rtp-over-quic",
+		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --codec h264 --sink /output/output.y4m",
 	},
 	"rtp-over-quic-gcc-newreno-stream": {
 		sender:       "engelbart/rtp-over-quic",
-		senderArgs:   "--cc-dump /log/gcc.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --gcc --newreno --codec h264 --source /input/input.y4m --stream",
+		senderArgs:   "--cc-dump /log/gcc.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --gcc --newreno --codec h264 --source /input/%v --stream",
 		receiver:     "engelbart/rtp-over-quic",
-		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --twcc --codec h264 --sink /output/output.mkv",
+		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --twcc --codec h264 --sink /output/output.y4m",
 	},
 	"rtp-over-quic-scream-newreno-stream": {
 		sender:       "engelbart/rtp-over-quic",
-		senderArgs:   "--cc-dump /log/scream.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --scream --newreno --codec h264 --source /input/input.y4m --stream",
+		senderArgs:   "--cc-dump /log/scream.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --scream --newreno --codec h264 --source /input/%v --stream",
 		receiver:     "engelbart/rtp-over-quic",
-		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --rfc8888 --codec h264 --sink /output/output.mkv",
+		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --rfc8888 --codec h264 --sink /output/output.y4m",
 	},
 }
 
-func (tc *TestCase) Run(ctx context.Context, implementationName string, outputDir string) error {
+func (tc *TestCase) Run(ctx context.Context, implementationName, input, outputDir string) error {
 	implementation, ok := Implementations[implementationName]
 	if !ok {
 		return fmt.Errorf("unknown implementation: %v", implementationName)
 	}
 
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		return err
+	for _, subdir := range []string{
+		"forward_0/send_log",
+		"forward_0/receive_log",
+		"forward_0/sink",
+		"forward_1/send_log",
+		"forward_1/receive_log",
+		"forward_1/sink",
+		"backward_0/send_log",
+		"backward_0/receive_log",
+		"backward_0/sink",
+		"backward_1/send_log",
+		"backward_1/receive_log",
+		"backward_1/sink",
+	} {
+		if err := os.MkdirAll(path.Join(outputDir, subdir), 0755); err != nil {
+			return err
+		}
 	}
 
 	composeFile, err := os.Create("docker-compose.yml")
@@ -515,11 +852,11 @@ func (tc *TestCase) Run(ctx context.Context, implementationName string, outputDi
 
 	for k, v := range map[string]string{
 		"SENDER_0":        implementation.sender,
-		"SENDER_0_ARGS":   implementation.senderArgs,
+		"SENDER_0_ARGS":   fmt.Sprintf(implementation.senderArgs, input),
 		"RECEIVER_0":      implementation.receiver,
 		"RECEIVER_0_ARGS": implementation.receiverArgs,
 		"SENDER_1":        implementation.sender,
-		"SENDER_1_ARGS":   implementation.senderArgs,
+		"SENDER_1_ARGS":   fmt.Sprintf(implementation.senderArgs, input),
 		"RECEIVER_1":      implementation.receiver,
 		"RECEIVER_1_ARGS": implementation.receiverArgs,
 		"OUTPUT":          outputDir,
@@ -548,8 +885,8 @@ func (tc *TestCase) Run(ctx context.Context, implementationName string, outputDi
 	return teardown(composeFile.Name())
 }
 
-func (tc *TestCase) Plot(outputDir, plotDir string, basetime int64) error {
-	return tc.plotFunc(outputDir, plotDir, basetime)
+func (tc *TestCase) Plot(input, outputDir, plotDir string, basetime int64) error {
+	return tc.plotFunc(input, outputDir, plotDir, basetime)
 }
 
 func createNetwork(

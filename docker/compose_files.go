@@ -146,7 +146,7 @@ services:
       SENDER: '172.26.03'
     volumes:
       - ./$OUTPUT/forward_0/receive_log:/log
-      - ./$OUTPUT/sink:/output
+      - ./$OUTPUT/forward_0/sink:/output
     networks:
       rightnet:
         ipv4_address: 172.27.0.3

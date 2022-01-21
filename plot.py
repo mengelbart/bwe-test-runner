@@ -6,10 +6,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import datetime as dt
+import numpy as np
 
 from glob import glob
 from matplotlib.ticker import PercentFormatter, EngFormatter
 from jinja2 import Environment, FileSystemLoader
+from pathlib import Path
 
 class rates_plot:
     def __init__(self, name):
@@ -34,7 +36,7 @@ class rates_plot:
         self.labels.append(l)
         return True
 
-    def add_rctp(self, file, basetime, label):
+    def add_rtcp(self, file, basetime, label):
         if not os.path.exists(file):
             return False
         df = pd.read_csv(
@@ -91,8 +93,8 @@ class rates_plot:
         self.ax.yaxis.set_major_formatter(EngFormatter(unit='bit/s'))
         self.ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1,
             minute=1, second=45)])
-        self.ax.set_ylim([0, 2600000])
-        lgd = self.ax.legend(handles = self.labels, loc='upper right', bbox_to_anchor=(0.75, 1))
+        #self.ax.set_ylim([0, 2600000])
+        lgd = self.ax.legend(handles = self.labels, loc='upper left', bbox_to_anchor=(0.75, 1))
         #lgd = self.ax.legend(handles = self.labels, loc='upper center', bbox_to_anchor=(0.5, -0.5), ncol=len(self.labels))
         self.fig.tight_layout()
 
@@ -143,7 +145,7 @@ class gcc_plot:
         self.rtt_ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.rtt_ax.yaxis.set_major_formatter(EngFormatter(unit='ms'))
         self.rtt_ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
-        lgd = self.rtt_ax.legend(handles = self.rtt_labels, loc='upper right', bbox_to_anchor=(0.75, 1))
+        lgd = self.rtt_ax.legend(handles = self.rtt_labels, loc='upper left', bbox_to_anchor=(0.75, 1))
         self.rtt_fig.savefig(os.path.join(path, prefix + '-rtt.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
         self.estimate_ax.set_xlabel('Time')
@@ -152,7 +154,7 @@ class gcc_plot:
         self.estimate_ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.estimate_ax.yaxis.set_major_formatter(EngFormatter(unit='ms'))
         self.estimate_ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
-        lgd = self.estimate_ax.legend(handles = self.estimate_labels, loc='upper right', bbox_to_anchor=(0.75, 1))
+        lgd = self.estimate_ax.legend(handles = self.estimate_labels, loc='upper left', bbox_to_anchor=(0.75, 1))
         self.estimate_fig.tight_layout()
         self.estimate_fig.savefig(os.path.join(path, prefix + '-estimate.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
@@ -162,7 +164,7 @@ class gcc_plot:
         self.loss_ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.loss_ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
         self.loss_ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
-        lgd = self.loss_ax.legend(handles = self.loss_labels, loc='upper right', bbox_to_anchor=(0.75, 1))
+        lgd = self.loss_ax.legend(handles = self.loss_labels, loc='upper left', bbox_to_anchor=(0.75, 1))
         self.loss_fig.tight_layout()
         self.loss_fig.savefig(os.path.join(path, prefix + '-loss.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
@@ -218,7 +220,7 @@ class scream_plot:
         self.in_flight_ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.in_flight_ax.yaxis.set_major_formatter(EngFormatter(unit='Byte'))
         self.in_flight_ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
-        lgd = self.in_flight_ax.legend(handles = self.in_flight_labels, loc='upper right', bbox_to_anchor=(0.75, 1))
+        lgd = self.in_flight_ax.legend(handles = self.in_flight_labels, loc='upper left', bbox_to_anchor=(0.75, 1))
         self.in_flight_fig.tight_layout()
         self.in_flight_fig.savefig(os.path.join(path, prefix + '-in-flight.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
@@ -228,7 +230,7 @@ class scream_plot:
         self.rates_ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.rates_ax.yaxis.set_major_formatter(EngFormatter(unit='kbit/s'))
         self.rates_ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
-        lgd = self.rates_ax.legend(handles = self.rates_labels, loc='upper right', bbox_to_anchor=(0.75, 1))
+        lgd = self.rates_ax.legend(handles = self.rates_labels, loc='upper left', bbox_to_anchor=(0.75, 1))
         self.rates_fig.tight_layout()
         self.rates_fig.savefig(os.path.join(path, prefix + '-rates.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
@@ -238,7 +240,7 @@ class scream_plot:
         self.delay_ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.delay_ax.yaxis.set_major_formatter(EngFormatter(unit='s'))
         self.delay_ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
-        lgd = self.delay_ax.legend(handles = self.delay_labels, loc='upper right', bbox_to_anchor=(0.75, 1))
+        lgd = self.delay_ax.legend(handles = self.delay_labels, loc='upper left', bbox_to_anchor=(0.75, 1))
         self.delay_fig.tight_layout()
         self.delay_fig.savefig(os.path.join(path, prefix + '-delay.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
@@ -282,7 +284,7 @@ class qlog_cwnd_plot:
         self.ax.yaxis.set_major_formatter(EngFormatter(unit='Bytes'))
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
-        lgd = self.ax.legend(handles = self.labels, loc='upper right', bbox_to_anchor=(0.75, 1))
+        lgd = self.ax.legend(handles = self.labels, loc='upper left', bbox_to_anchor=(0.75, 1))
         self.fig.tight_layout()
         self.fig.savefig(os.path.join(path, prefix + '.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
@@ -341,14 +343,14 @@ class qlog_bytes_sent_plot:
 
     def plot(self, path, prefix):
         self.ax.set_xlabel('Time')
-        self.ax.set_ylabel('Bytes in Flight')
+        self.ax.set_ylabel('Rate')
 
         self.ax.set_title(self.name)
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.ax.yaxis.set_major_formatter(EngFormatter(unit='bit/s'))
         self.ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
 
-        lgd = self.ax.legend(handles = self.labels, loc='upper right', bbox_to_anchor=(0.75, 1))
+        lgd = self.ax.legend(handles = self.labels, loc='upper left', bbox_to_anchor=(0.75, 1))
         self.fig.tight_layout()
         self.fig.savefig(os.path.join(path, prefix + '.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
@@ -396,7 +398,7 @@ class qlog_rtt_plot:
         self.ax.yaxis.set_major_formatter(EngFormatter(unit='ms'))
         self.ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
 
-        lgd = self.ax.legend(handles = self.labels, loc='upper right', bbox_to_anchor=(0.75, 1))
+        lgd = self.ax.legend(handles = self.labels, loc='upper left', bbox_to_anchor=(0.75, 1))
         self.fig.tight_layout()
         self.fig.savefig(os.path.join(path, prefix + '.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
@@ -445,12 +447,96 @@ class tcp_plot:
         self.ax.yaxis.set_major_formatter(EngFormatter(unit='bit/s'))
         self.ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
 
-        lgd = self.ax.legend(handles = self.labels, loc='upper right', bbox_to_anchor=(0.75, 1))
+        lgd = self.ax.legend(handles = self.labels, loc='upper left', bbox_to_anchor=(0.75, 1))
         self.fig.tight_layout()
         self.fig.savefig(os.path.join(path, prefix + '.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
+class ssim_plot:
+    def __init__(self, name):
+        self.name = name
+        self.fig, self.ax = plt.subplots(figsize=(8,2), dpi=400)
+        self.labels = []
+
+    def add(self, file):
+        if not os.path.exists(file):
+            return False
+        df = pd.read_csv(
+                file,
+                sep=r'[\s:]',
+                engine='python',
+                usecols=[1, 9],
+                names=['n', 'ssim'],
+            )
+
+        df[np.isfinite(df)]['ssim'].plot(ax=self.ax)
+        #df[np.isfinite(df)]['ssim'].hist(cumulative=True, bins=len(df['ssim']), density=True, ax=self.ax[1])
+
+        mu = df[np.isfinite(df)]['ssim'].mean()
+        median = np.median(df['ssim'])
+        sigma = df[np.isfinite(df)]['ssim'].std()
+        textstr = '\n'.join((
+            r'$\mu=%.2f$' % (mu, ),
+            r'$\mathrm{median}=%.2f$' % (median, ),
+            r'$\sigma=%.2f$' % (sigma, )))
+
+        props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+
+        # place a text box in upper left in axes coords
+        self.ax.text(0.05, 0.95, textstr, transform=self.ax.transAxes, fontsize=14,
+                verticalalignment='top', bbox=props)
+
+        return True
+
+    def plot(self, file):
+        self.ax.set_xlabel('Frame')
+        self.ax.set_ylabel('SSIM')
+        self.ax.set_title(self.name)
+        self.fig.savefig(os.path.join(file, 'ssim.png'))
+
+class psnr_plot:
+    def __init__(self, name):
+        self.name = name
+        self.fig, self.ax = plt.subplots(figsize=(8,2), dpi=400)
+        self.labels = []
+
+    def add(self, file):
+        if not os.path.exists(file):
+            return False
+        df=pd.read_csv(
+                file,
+                sep=r'[\s:]',
+                engine='python',
+                usecols=[1, 11],
+                names=['n', 'psnr'],
+            )
+
+        df[np.isfinite(df)]['psnr'].plot(ax=self.ax)
+        #df[np.isfinite(df)]['psnr'].hist(cumulative=True, bins=len(df['psnr']), density=True, ax=self.ax[1])
+
+        mu = df[np.isfinite(df)]['psnr'].mean()
+        median = np.median(df['psnr'])
+        sigma = df[np.isfinite(df)]['psnr'].std()
+        textstr = '\n'.join((
+            r'$\mu=%.2f$' % (mu, ),
+            r'$\mathrm{median}=%.2f$' % (median, ),
+            r'$\sigma=%.2f$' % (sigma, )))
+
+        props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+
+        # place a text box in upper left in axes coords
+        self.ax.text(0.05, 0.95, textstr, transform=self.ax.transAxes, fontsize=14,
+                verticalalignment='top', bbox=props)
+
+        return True
+
+    def plot(self, file):
+        self.ax.set_xlabel('Frame')
+        self.ax.set_ylabel('dB')
+        self.ax.set_title(self.name)
+        self.fig.savefig(os.path.join(file, 'psnr.png'))
+
 def generate_html(path):
-    images = [os.path.basename(x) for x in glob(os.path.join(path, '*.png'))]
+    images = [str(x)[len(path)+1:] for x in Path(path).rglob('*.png')]
     templates_dir = './templates/'
     env = Environment(loader = FileSystemLoader(templates_dir))
     template = env.get_template('detail.html')
@@ -472,7 +558,20 @@ def main():
     args = parser.parse_args()
 
     match args.plot:
+        case 'psnr':
+            Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+            plot = psnr_plot('PSNR')
+            plot.add(os.path.join(args.input_dir, 'psnr.log'))
+            plot.plot(args.output_dir)
+
+        case 'ssim':
+            Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+            plot = ssim_plot('SSIM')
+            plot.add(os.path.join(args.input_dir, 'ssim.log'))
+            plot.plot(args.output_dir)
+
         case 'rates':
+            Path(args.output_dir).mkdir(parents=True, exist_ok=True)
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
             plot = rates_plot('RTP Rates ' + args.name)
             plot.add_rtp(os.path.join(args.input_dir, 'send_log', 'rtp_out.log'), basetime, 'RTP sent')
@@ -481,24 +580,26 @@ def main():
             plot.add_cc(os.path.join(args.input_dir, 'send_log', 'scream.log'), basetime)
             plot.add_cc(os.path.join(args.input_dir, 'send_log', 'cc.log'), basetime)
             plot.add_router(args.router, basetime)
-            plot.plot(args.output_dir, args.name + '-rtp-' + args.plot)
+            plot.plot(args.output_dir, 'rtp-' + args.plot)
 
             plot = rates_plot('RTCP Rates ' + args.name)
-            plot.add_rctp(os.path.join(args.input_dir, 'receive_log', 'rtcp_out.log'), basetime, 'RTCP sent')
-            plot.add_rctp(os.path.join(args.input_dir, 'send_log', 'rtcp_in.log'), basetime, 'RTCP received')
-            plot.plot(args.output_dir, args.name + '-rtcp-' + args.plot)
+            plot.add_rtcp(os.path.join(args.input_dir, 'receive_log', 'rtcp_out.log'), basetime, 'RTCP sent')
+            plot.add_rtcp(os.path.join(args.input_dir, 'send_log', 'rtcp_in.log'), basetime, 'RTCP received')
+            plot.plot(args.output_dir, 'rtcp-' + args.plot)
 
         case 'gcc':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
             plot = gcc_plot('GCC ' + args.name)
             if plot.add(os.path.join(args.input_dir, 'send_log', 'gcc.log'), basetime):
-                plot.plot(args.output_dir, args.name + '-gcc')
+                Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+                plot.plot(args.output_dir, 'gcc')
 
         case 'scream':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
             plot = scream_plot('SCReAM ' + args.name)
             if plot.add_scream(os.path.join(args.input_dir, 'send_log', 'scream.log'), basetime):
-                plot.plot(args.output_dir, args.name + '-scream')
+                Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+                plot.plot(args.output_dir, 'scream')
 
         case 'qlog-cwnd':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
@@ -506,13 +607,15 @@ def main():
             plot = qlog_cwnd_plot('QLOG Sender CWND' + args.name)
             if len(qlog_files) > 0:
                 if plot.add_cwnd(qlog_files[0]):
-                    plot.plot(args.output_dir, args.name + '-qlog-sender-cwnd')
+                    Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+                    plot.plot(args.output_dir, 'qlog-sender-cwnd')
 
             qlog_files = glob(os.path.join(args.input_dir, 'receive_log', '*.qlog'))
             plot = qlog_cwnd_plot('QLOG Receiver CWND' + args.name)
             if len(qlog_files) > 0:
                 if plot.add_cwnd(qlog_files[0]):
-                    plot.plot(args.output_dir, args.name + '-qlog-receiver-cwnd')
+                    Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+                    plot.plot(args.output_dir, 'qlog-receiver-cwnd')
 
         case 'qlog-bytes-sent':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
@@ -520,13 +623,15 @@ def main():
             plot = qlog_bytes_sent_plot('QLOG Sender Bytes Sent' + args.name)
             if len(qlog_files) > 0:
                 if plot.add_bytes_sent(qlog_files[0]):
-                    plot.plot(args.output_dir, args.name + '-qlog-sender-sent')
+                    Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+                    plot.plot(args.output_dir, 'qlog-sender-sent')
 
             qlog_files = glob(os.path.join(args.input_dir, 'receive_log', '*.qlog'))
             plot = qlog_bytes_sent_plot('QLOG Receiver Bytes Sent' + args.name)
             if len(qlog_files) > 0:
                 if plot.add_bytes_sent(qlog_files[0]):
-                    plot.plot(args.output_dir, args.name + '-qlog-receiver-sent')
+                    Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+                    plot.plot(args.output_dir, 'qlog-receiver-sent')
 
         case 'qlog-rtt':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
@@ -534,13 +639,15 @@ def main():
             plot = qlog_rtt_plot('QLOG Sender RTT ' + args.name)
             if len(qlog_files) > 0:
                 if plot.add_rtt(qlog_files[0]):
-                    plot.plot(args.output_dir, args.name + '-qlog-sender-rtt')
+                    Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+                    plot.plot(args.output_dir, 'qlog-sender-rtt')
 
             qlog_files = glob(os.path.join(args.input_dir, 'receive_log', '*.qlog'))
             plot = qlog_rtt_plot('QLOG Receiver RTT ' + args.name)
             if len(qlog_files) > 0:
                 if plot.add_rtt(qlog_files[0]):
-                    plot.plot(args.output_dir, args.name + '-qlog-receiver-rtt')
+                    Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+                    plot.plot(args.output_dir, 'qlog-receiver-rtt')
 
         case 'tcp':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
@@ -549,7 +656,8 @@ def main():
             found_sent = plot.add(os.path.join(args.input_dir, 'send_log', 'tcp.log'), 'TCP sent')
             found_received = plot.add(os.path.join(args.input_dir, 'receive_log', 'tcp.log'), 'TCP received')
             if found_sent or found_received:
-                plot.plot(args.output_dir, args.name + '-tcp')
+                Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+                plot.plot(args.output_dir, 'tcp')
 
         case 'html':
             generate_html(args.output_dir)
