@@ -129,6 +129,7 @@ var TestCases = map[string]TestCase{
 
 			for _, plot := range []string{
 				"rates",
+				"latency",
 				"psnr",
 				"ssim",
 				"qlog-cwnd",
@@ -214,6 +215,7 @@ var TestCases = map[string]TestCase{
 
 			for _, plot := range []string{
 				"rates",
+				"latency",
 				"psnr",
 				"ssim",
 				"qlog-cwnd",
@@ -299,6 +301,7 @@ var TestCases = map[string]TestCase{
 
 			for _, plot := range []string{
 				"rates",
+				"latency",
 				"psnr",
 				"ssim",
 				"qlog-cwnd",
@@ -384,6 +387,7 @@ var TestCases = map[string]TestCase{
 
 			for _, plot := range []string{
 				"rates",
+				"latency",
 				"psnr",
 				"ssim",
 				"qlog-cwnd",
@@ -478,6 +482,7 @@ var TestCases = map[string]TestCase{
 				}
 				for _, plot := range []string{
 					"rates",
+					"latency",
 					"psnr",
 					"ssim",
 					"qlog-cwnd",
@@ -597,6 +602,7 @@ var TestCases = map[string]TestCase{
 				}
 				for _, plot := range []string{
 					"rates",
+					"latency",
 					"psnr",
 					"ssim",
 					"qlog-cwnd",
@@ -657,6 +663,7 @@ var TestCases = map[string]TestCase{
 
 			for plot, direction := range map[string]string{
 				"rates":           "forward_0",
+				"latency":         "forward_0",
 				"psnr":            "forward_0",
 				"ssim":            "forward_0",
 				"qlog-cwnd":       "forward_0",

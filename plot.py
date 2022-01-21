@@ -100,6 +100,49 @@ class rates_plot:
 
         self.fig.savefig(os.path.join(path, prefix + '.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
+# Assumes non-wrapping RTP sequence numbers.
+class rtp_latency_plot:
+    def __init__(self, name):
+        self.name = name
+        self.labels = []
+        self.fig, self.ax = plt.subplots(figsize=(8,3), dpi=400)
+
+    def add(self, send_file, receive_file, basetime):
+        if not os.path.exists(send_file):
+            return False
+        if not os.path.exists(receive_file):
+            return False
+
+        df_send = pd.read_csv(
+                send_file,
+                index_col = 1,
+                names = ['time_send', 'nr'],
+                header = None,
+                usecols = [0, 3],
+            )
+        df_receive = pd.read_csv(
+                receive_file,
+                index_col = 1,
+                names = ['time_receive', 'nr'],
+                header = None,
+                usecols = [0, 3],
+            )
+        df = df_send.merge(df_receive, on='nr')
+        df['diff'] = df['time_receive'] - df['time_send']
+        df['time'] = pd.to_datetime(df['time_send'] - basetime, unit='ms')
+        l = self.ax.scatter(df['time'], df['diff'], s=0.1)
+        self.labels.append(l)
+        return True
+
+    def plot(self, path):
+        self.ax.set_xlabel('Time')
+        self.ax.set_ylabel('Latency')
+        self.ax.set_title(self.name)
+        self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
+        self.ax.yaxis.set_major_formatter(EngFormatter(unit='ms'))
+        self.fig.tight_layout()
+        self.fig.savefig(os.path.join(path, 'rtp-delay.png'))
+
 class gcc_plot:
     def __init__(self, name):
         self.name = name
@@ -586,6 +629,17 @@ def main():
             plot.add_rtcp(os.path.join(args.input_dir, 'receive_log', 'rtcp_out.log'), basetime, 'RTCP sent')
             plot.add_rtcp(os.path.join(args.input_dir, 'send_log', 'rtcp_in.log'), basetime, 'RTCP received')
             plot.plot(args.output_dir, 'rtcp-' + args.plot)
+
+        case 'latency':
+            Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+            basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
+            plot = rtp_latency_plot('RTP Latency ' + args.name)
+            if plot.add(
+                    os.path.join(args.input_dir, 'send_log', 'rtp_out.log'),
+                    os.path.join(args.input_dir, 'receive_log', 'rtp_in.log'),
+                    basetime
+                    ):
+                plot.plot(args.output_dir)
 
         case 'gcc':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
