@@ -234,9 +234,10 @@ class scream_plot:
                 usecols = [0, 2, 3, 4, 5, 6, 7, 8],
             )
         df.index = pd.to_datetime(df.index - basetime, unit='ms')
-        df['rate_lost'] = pd.to_numeric(df['rate_lost'], errors='coerce')
-        df['rate_transmitted'] = pd.to_numeric(df['rate_transmitted'], errors='coerce')
-        df['rate_acked'] = pd.to_numeric(df['rate_acked'], errors='coerce')
+        df['rate_lost'] = pd.to_numeric(df['rate_lost'], errors='coerce').apply(lambda x: x * 1000)
+        df['rate_transmitted'] = pd.to_numeric(df['rate_transmitted'], errors='coerce').apply(lambda x: x * 1000)
+        df['rate_acked'] = pd.to_numeric(df['rate_acked'], errors='coerce').apply(lambda x: x * 1000)
+
 
         l0, = self.delay_ax.plot(df.index, df['queue_delay'], label='Queue Delay', linewidth=0.5)
         #l1, = self.delay_ax.plot(df.index, df['srtt'], label='SRTT', linewidth=0.5)
@@ -271,7 +272,7 @@ class scream_plot:
         self.rates_ax.set_ylabel('Rate')
         self.rates_ax.set_title('Rates ' + self.name)
         self.rates_ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
-        self.rates_ax.yaxis.set_major_formatter(EngFormatter(unit='kbit/s'))
+        self.rates_ax.yaxis.set_major_formatter(EngFormatter(unit='bit/s'))
         self.rates_ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
         lgd = self.rates_ax.legend(handles = self.rates_labels, loc='upper left', bbox_to_anchor=(0.75, 1))
         self.rates_fig.tight_layout()
