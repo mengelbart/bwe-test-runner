@@ -779,6 +779,75 @@ var TestCases = map[string]TestCase{
 			return nil
 		},
 	},
+	"MediaFlowCompetingWithALongTCPBBRFlow": {
+		composeFileString: composeFileStringEight,
+		duration:          120 * time.Second,
+		leftRouter: []tcPhase{
+			{
+				Duration: 120 * time.Second,
+				Config: tcConfig{
+					Delay:   50 * time.Millisecond,
+					Jitter:  30 * time.Millisecond,
+					Rate:    "2000000",
+					Burst:   "20kb",
+					Latency: 300 * time.Millisecond,
+				},
+			},
+		},
+		rightRouter: []tcPhase{},
+		plotFunc: func(input, outputDir, plotDir string, basetime int64) error {
+			if err := os.MkdirAll(plotDir, 0755); err != nil {
+				return err
+			}
+
+			direction := "forward_0"
+			if err := calculateVideoMetrics(fmt.Sprintf("./input/%v", input), fmt.Sprintf("%v/%v/sink/output.y4m", outputDir, direction), fmt.Sprintf("%v/%v", outputDir, direction)); err != nil {
+				return err
+			}
+
+			for plot, direction := range map[string]string{
+				"rates":           "forward_0",
+				"loss":            "forward_0",
+				"latency":         "forward_0",
+				"psnr":            "forward_0",
+				"ssim":            "forward_0",
+				"qlog-cwnd":       "forward_0",
+				"qlog-bytes-sent": "forward_0",
+				"qlog-rtt":        "forward_0",
+				"scream":          "forward_0",
+				"gcc":             "forward_0",
+				"tcp":             "forward_1",
+			} {
+				plotCMD := exec.Command(
+					"./plot.py",
+					plot,
+					"--name", prettyPrint(direction),
+					"--input_dir", path.Join(outputDir, direction),
+					"--output_dir", path.Join(plotDir, direction),
+					"--basetime", fmt.Sprintf("%v", basetime),
+					"--router", path.Join(outputDir, "leftrouter.log"),
+				)
+				fmt.Println(plotCMD.Args)
+				plotCMD.Stderr = os.Stderr
+				plotCMD.Stdout = os.Stdout
+				if err := plotCMD.Run(); err != nil {
+					return err
+				}
+			}
+			plotCMD := exec.Command(
+				"./plot.py",
+				"html",
+				"--output_dir", plotDir,
+			)
+			fmt.Println(plotCMD.Args)
+			plotCMD.Stderr = os.Stderr
+			plotCMD.Stdout = os.Stdout
+			if err := plotCMD.Run(); err != nil {
+				return err
+			}
+			return nil
+		},
+	},
 }
 
 type Implementation struct {
@@ -807,15 +876,39 @@ var Implementations = map[string]Implementation{
 		receiver:     "engelbart/rtp-over-quic",
 		receiverArgs: "--transport udp --rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --rfc8888 --codec h264 --sink /output/output.y4m",
 	},
-	"rtp-over-quic-tcp-gcc": {
+	"rtp-over-quic-tcp-reno-gcc": {
 		sender:       "engelbart/rtp-over-quic",
-		senderArgs:   "--transport tcp --cc-dump /log/gcc.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --gcc --codec h264 --source /input/%v",
+		senderArgs:   "--transport tcp --tcp-congestion reno --cc-dump /log/gcc.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --gcc --codec h264 --source /input/%v",
 		receiver:     "engelbart/rtp-over-quic",
 		receiverArgs: "--transport tcp --rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --twcc --codec h264 --sink /output/output.y4m",
 	},
-	"rtp-over-quic-tcp-scream": {
+	"rtp-over-quic-tcp-reno-scream": {
 		sender:       "engelbart/rtp-over-quic",
-		senderArgs:   "--transport tcp --cc-dump /log/scream.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --scream --codec h264 --source /input/%v",
+		senderArgs:   "--transport tcp --tcp-congestion reno --cc-dump /log/scream.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --scream --codec h264 --source /input/%v",
+		receiver:     "engelbart/rtp-over-quic",
+		receiverArgs: "--transport tcp --rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --rfc8888 --codec h264 --sink /output/output.y4m",
+	},
+	"rtp-over-quic-tcp-cubic-gcc": {
+		sender:       "engelbart/rtp-over-quic",
+		senderArgs:   "--transport tcp --tcp-congestion cubic --cc-dump /log/gcc.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --gcc --codec h264 --source /input/%v",
+		receiver:     "engelbart/rtp-over-quic",
+		receiverArgs: "--transport tcp --rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --twcc --codec h264 --sink /output/output.y4m",
+	},
+	"rtp-over-quic-tcp-cubic-scream": {
+		sender:       "engelbart/rtp-over-quic",
+		senderArgs:   "--transport tcp --tcp-congestion cubic --cc-dump /log/scream.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --scream --codec h264 --source /input/%v",
+		receiver:     "engelbart/rtp-over-quic",
+		receiverArgs: "--transport tcp --rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --rfc8888 --codec h264 --sink /output/output.y4m",
+	},
+	"rtp-over-quic-tcp-bbr-gcc": {
+		sender:       "engelbart/rtp-over-quic",
+		senderArgs:   "--transport tcp --tcp-congestion bbr --cc-dump /log/gcc.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --gcc --codec h264 --source /input/%v",
+		receiver:     "engelbart/rtp-over-quic",
+		receiverArgs: "--transport tcp --rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --twcc --codec h264 --sink /output/output.y4m",
+	},
+	"rtp-over-quic-tcp-bbr-scream": {
+		sender:       "engelbart/rtp-over-quic",
+		senderArgs:   "--transport tcp --tcp-congestion bbr --cc-dump /log/scream.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --scream --codec h264 --source /input/%v",
 		receiver:     "engelbart/rtp-over-quic",
 		receiverArgs: "--transport tcp --rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --rfc8888 --codec h264 --sink /output/output.y4m",
 	},
