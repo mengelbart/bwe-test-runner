@@ -68,7 +68,12 @@ func calculateVideoMetrics(mediaSrc, mediaDst, logDir string) error {
 	log.Println(ffmpeg.Args)
 	ffmpeg.Stdout = os.Stdout
 	ffmpeg.Stderr = os.Stderr
-	return ffmpeg.Run()
+	if err := ffmpeg.Run(); err != nil {
+		fmt.Println()
+		log.Printf("ERROR CALCULATING VIDEO METRICS: %v\n", err)
+		fmt.Println()
+	}
+	return nil
 }
 
 var TestCases = map[string]TestCase{
@@ -956,6 +961,19 @@ var Implementations = map[string]Implementation{
 	},
 	"rtp-over-quic-scream-newreno-stream": {
 		sender:       "engelbart/rtp-over-quic",
+		senderArgs:   "--cc-dump /log/scream.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --scream --newreno --codec h264 --source /input/%v --stream",
+		receiver:     "engelbart/rtp-over-quic",
+		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --rfc8888 --codec h264 --sink /output/output.y4m",
+	},
+
+	"rtp-over-quic-prio-gcc-newreno-stream": {
+		sender:       "engelbart/rtp-over-quic:prio",
+		senderArgs:   "--cc-dump /log/gcc.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --gcc --newreno --codec h264 --source /input/%v --stream",
+		receiver:     "engelbart/rtp-over-quic",
+		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --twcc --codec h264 --sink /output/output.y4m",
+	},
+	"rtp-over-quic-prio-scream-newreno-stream": {
+		sender:       "engelbart/rtp-over-quic:prio",
 		senderArgs:   "--cc-dump /log/scream.log --rtcp-dump /log/rtcp_in.log --rtp-dump /log/rtp_out.log --qlog /log --scream --newreno --codec h264 --source /input/%v --stream",
 		receiver:     "engelbart/rtp-over-quic",
 		receiverArgs: "--rtcp-dump /log/rtcp_out.log --rtp-dump /log/rtp_in.log --qlog /log --rfc8888 --codec h264 --sink /output/output.y4m",

@@ -17,7 +17,7 @@ class rates_plot:
     def __init__(self, name):
         self.name = name
         self.labels = []
-        self.fig, self.ax = plt.subplots(figsize=(8,3), dpi=400)
+        self.fig, self.ax = plt.subplots(figsize=(8,2), dpi=400)
 
     def add_rtp(self, file, basetime, label):
         if not os.path.exists(file):
@@ -94,7 +94,8 @@ class rates_plot:
         self.ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1,
             minute=1, second=45)])
         #self.ax.set_ylim([0, 2600000])
-        lgd = self.ax.legend(handles = self.labels, loc='upper left', bbox_to_anchor=(0.75, 1))
+        lgd = self.ax.legend(handles = self.labels, loc='upper right',
+                bbox_to_anchor=(1, 1), ncol=2)
         #lgd = self.ax.legend(handles = self.labels, loc='upper center', bbox_to_anchor=(0.5, -0.5), ncol=len(self.labels))
         self.fig.tight_layout()
 
@@ -104,7 +105,7 @@ class rtp_loss_plot:
     def __init__(self, name):
         self.name = name
         self.labels = []
-        self.fig, self.ax = plt.subplots(figsize=(8,3), dpi=400)
+        self.fig, self.ax = plt.subplots(figsize=(8,2), dpi=400)
 
     def add(self, send_file, receive_file, basetime):
         if not os.path.exists(send_file):
@@ -132,7 +133,7 @@ class rtp_loss_plot:
         df_all['lost'] = df_all['_merge'] == 'left_only'
         df_all = df_all.resample('1s').agg({'time_send': 'count', 'lost': 'sum'})
         df_all['loss_rate'] = df_all['lost'] / df_all['time_send']
-        l, = self.ax.plot(df_all.index, df_all['loss_rate'], linewidth=0.5)
+        l, = self.ax.plot(df_all.index, df_all['loss_rate'], label='RTP Loss', linewidth=0.5)
         self.labels.append(l)
         return True
 
@@ -142,6 +143,8 @@ class rtp_loss_plot:
         self.ax.set_title(self.name)
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
+        self.ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1,
+            minute=1, second=45)])
         self.fig.tight_layout()
         self.fig.savefig(os.path.join(path, 'rtp-loss.png'))
 
@@ -149,7 +152,7 @@ class rtp_latency_plot:
     def __init__(self, name):
         self.name = name
         self.labels = []
-        self.fig, self.ax = plt.subplots(figsize=(8,3), dpi=400)
+        self.fig, self.ax = plt.subplots(figsize=(8,2), dpi=400)
 
     def add(self, send_file, receive_file, basetime):
         if not os.path.exists(send_file):
@@ -172,7 +175,7 @@ class rtp_latency_plot:
                 usecols = [0, 8],
             )
         df = df_send.merge(df_receive, on='nr')
-        df['diff'] = df['time_receive'] - df['time_send']
+        df['diff'] = (df['time_receive'] - df['time_send']) / 1000.0
         df['time'] = pd.to_datetime(df['time_send'] - basetime, unit='ms')
         l = self.ax.scatter(df['time'], df['diff'], s=0.1)
         self.labels.append(l)
@@ -183,7 +186,9 @@ class rtp_latency_plot:
         self.ax.set_ylabel('Latency')
         self.ax.set_title(self.name)
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
-        self.ax.yaxis.set_major_formatter(EngFormatter(unit='ms'))
+        self.ax.yaxis.set_major_formatter(EngFormatter(unit='s'))
+        self.ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1,
+            minute=1, second=45)])
         self.fig.tight_layout()
         self.fig.savefig(os.path.join(path, 'rtp-delay.png'))
 
@@ -232,7 +237,7 @@ class gcc_plot:
         self.rtt_ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.rtt_ax.yaxis.set_major_formatter(EngFormatter(unit='ms'))
         self.rtt_ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
-        lgd = self.rtt_ax.legend(handles = self.rtt_labels, loc='upper left', bbox_to_anchor=(0.75, 1))
+        lgd = self.rtt_ax.legend(handles = self.rtt_labels, loc='upper right', bbox_to_anchor=(1, 1))
         self.rtt_fig.savefig(os.path.join(path, prefix + '-rtt.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
         self.estimate_ax.set_xlabel('Time')
@@ -241,7 +246,7 @@ class gcc_plot:
         self.estimate_ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.estimate_ax.yaxis.set_major_formatter(EngFormatter(unit='ms'))
         self.estimate_ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
-        lgd = self.estimate_ax.legend(handles = self.estimate_labels, loc='upper left', bbox_to_anchor=(0.75, 1))
+        lgd = self.estimate_ax.legend(handles = self.estimate_labels, loc='upper right', bbox_to_anchor=(1, 1))
         self.estimate_fig.tight_layout()
         self.estimate_fig.savefig(os.path.join(path, prefix + '-estimate.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
@@ -251,7 +256,7 @@ class gcc_plot:
         self.loss_ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.loss_ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
         self.loss_ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
-        lgd = self.loss_ax.legend(handles = self.loss_labels, loc='upper left', bbox_to_anchor=(0.75, 1))
+        lgd = self.loss_ax.legend(handles = self.loss_labels, loc='upper right', bbox_to_anchor=(1, 1))
         self.loss_fig.tight_layout()
         self.loss_fig.savefig(os.path.join(path, prefix + '-loss.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
@@ -308,7 +313,7 @@ class scream_plot:
         self.in_flight_ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.in_flight_ax.yaxis.set_major_formatter(EngFormatter(unit='Byte'))
         self.in_flight_ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
-        lgd = self.in_flight_ax.legend(handles = self.in_flight_labels, loc='upper left', bbox_to_anchor=(0.75, 1))
+        lgd = self.in_flight_ax.legend(handles = self.in_flight_labels, loc='upper right', bbox_to_anchor=(1, 1))
         self.in_flight_fig.tight_layout()
         self.in_flight_fig.savefig(os.path.join(path, prefix + '-in-flight.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
@@ -318,7 +323,7 @@ class scream_plot:
         self.rates_ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.rates_ax.yaxis.set_major_formatter(EngFormatter(unit='bit/s'))
         self.rates_ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
-        lgd = self.rates_ax.legend(handles = self.rates_labels, loc='upper left', bbox_to_anchor=(0.75, 1))
+        lgd = self.rates_ax.legend(handles = self.rates_labels, loc='upper right', bbox_to_anchor=(1, 1))
         self.rates_fig.tight_layout()
         self.rates_fig.savefig(os.path.join(path, prefix + '-rates.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
@@ -328,7 +333,7 @@ class scream_plot:
         self.delay_ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.delay_ax.yaxis.set_major_formatter(EngFormatter(unit='s'))
         self.delay_ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
-        lgd = self.delay_ax.legend(handles = self.delay_labels, loc='upper left', bbox_to_anchor=(0.75, 1))
+        lgd = self.delay_ax.legend(handles = self.delay_labels, loc='upper right', bbox_to_anchor=(1, 1))
         self.delay_fig.tight_layout()
         self.delay_fig.savefig(os.path.join(path, prefix + '-delay.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
@@ -372,14 +377,57 @@ class qlog_cwnd_plot:
         self.ax.yaxis.set_major_formatter(EngFormatter(unit='Bytes'))
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
         self.ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
-        lgd = self.ax.legend(handles = self.labels, loc='upper left', bbox_to_anchor=(0.75, 1))
+        lgd = self.ax.legend(handles = self.labels, loc='upper right', bbox_to_anchor=(1, 1))
+        self.fig.tight_layout()
+        self.fig.savefig(os.path.join(path, prefix + '.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
+
+class qlog_ack_delay_plot:
+    def __init__(self, name):
+        self.name = name
+        self.fig, self.ax = plt.subplots(figsize=(8,2), dpi=400)
+        self.labels = []
+
+    def add(self, file):
+        if not os.path.exists(file):
+            return False
+
+        ack_delays = []
+        with open(file) as f:
+            for index, line in enumerate(f):
+                event = json.loads(line.strip())
+                if 'name' in event and event['name'] == 'transport:packet_received':
+                    if 'data' in event and 'frames' in event['data']:
+                        acks = [frame for frame in event['data']['frames'] if
+                                frame['frame_type'] == 'ack' and 'ack_delay' in
+                                frame]
+                        for ackframe in acks:
+                            ack_delays.append({'time': event['time'], 'delay':
+                                ackframe['ack_delay'] / 1000.0})
+
+        if len(ack_delays) > 0:
+            df = pd.DataFrame(ack_delays)
+            df.index = pd.to_datetime(df['time'], unit='ms')
+            l1, = self.ax.plot(df.index, df['delay'], label='ACK Delay', linewidth=0.5)
+            self.labels.append(l1)
+            return True
+
+    def plot(self, path, prefix):
+        self.ax.set_xlabel('Time')
+        self.ax.set_ylabel('Delay')
+
+        self.ax.set_title(self.name)
+        self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
+        self.ax.yaxis.set_major_formatter(EngFormatter(unit='s'))
+        self.ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
+
+        lgd = self.ax.legend(handles = self.labels, loc='upper right', bbox_to_anchor=(1, 1))
         self.fig.tight_layout()
         self.fig.savefig(os.path.join(path, prefix + '.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
 class qlog_bytes_sent_plot:
     def __init__(self, name):
         self.name = name
-        self.fig, self.ax = plt.subplots(figsize=(9,4), dpi=400)
+        self.fig, self.ax = plt.subplots(figsize=(8,2), dpi=400)
         self.labels = []
 
     def add_bytes_sent(self, file):
@@ -438,7 +486,7 @@ class qlog_bytes_sent_plot:
         self.ax.yaxis.set_major_formatter(EngFormatter(unit='bit/s'))
         self.ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
 
-        lgd = self.ax.legend(handles = self.labels, loc='upper left', bbox_to_anchor=(0.75, 1))
+        lgd = self.ax.legend(handles = self.labels, loc='upper right', bbox_to_anchor=(1, 1))
         self.fig.tight_layout()
         self.fig.savefig(os.path.join(path, prefix + '.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
@@ -466,7 +514,7 @@ class qlog_rtt_plot:
                         sample['min_rtt'] = event['data']['min_rtt']
                         append = True
                     if 'data' in event and 'latest_rtt' in event['data']:
-                        sample['latest_rtt'] = event['data']['latest_rtt']
+                        sample['latest_rtt'] = event['data']['latest_rtt'] / 1000.0
                         append = True
                     if append:
                         rtt.append(sample)
@@ -483,10 +531,10 @@ class qlog_rtt_plot:
 
         self.ax.set_title(self.name)
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%M:%S"))
-        self.ax.yaxis.set_major_formatter(EngFormatter(unit='ms'))
+        self.ax.yaxis.set_major_formatter(EngFormatter(unit='s'))
         self.ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
 
-        lgd = self.ax.legend(handles = self.labels, loc='upper left', bbox_to_anchor=(0.75, 1))
+        lgd = self.ax.legend(handles = self.labels, loc='upper right', bbox_to_anchor=(1, 1))
         self.fig.tight_layout()
         self.fig.savefig(os.path.join(path, prefix + '.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
@@ -535,7 +583,7 @@ class tcp_plot:
         self.ax.yaxis.set_major_formatter(EngFormatter(unit='bit/s'))
         self.ax.set_xlim([dt.datetime(1970, 1, 1), dt.datetime(1970, 1, 1, minute=1, second=45)])
 
-        lgd = self.ax.legend(handles = self.labels, loc='upper left', bbox_to_anchor=(0.75, 1))
+        lgd = self.ax.legend(handles = self.labels, loc='upper right', bbox_to_anchor=(1, 1))
         self.fig.tight_layout()
         self.fig.savefig(os.path.join(path, prefix + '.png'), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
@@ -569,7 +617,7 @@ class ssim_plot:
 
         props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
 
-        # place a text box in upper left in axes coords
+        # place a text box in upper right in axes coords
         self.ax.text(0.05, 0.95, textstr, transform=self.ax.transAxes, fontsize=14,
                 verticalalignment='top', bbox=props)
 
@@ -579,6 +627,7 @@ class ssim_plot:
         self.ax.set_xlabel('Frame')
         self.ax.set_ylabel('SSIM')
         self.ax.set_title(self.name)
+        self.fig.tight_layout()
         self.fig.savefig(os.path.join(file, 'ssim.png'))
 
 class psnr_plot:
@@ -611,7 +660,7 @@ class psnr_plot:
 
         props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
 
-        # place a text box in upper left in axes coords
+        # place a text box in upper right in axes coords
         self.ax.text(0.05, 0.95, textstr, transform=self.ax.transAxes, fontsize=14,
                 verticalalignment='top', bbox=props)
 
@@ -621,6 +670,7 @@ class psnr_plot:
         self.ax.set_xlabel('Frame')
         self.ax.set_ylabel('dB')
         self.ax.set_title(self.name)
+        self.fig.tight_layout()
         self.fig.savefig(os.path.join(file, 'psnr.png'))
 
 def generate_html(path):
@@ -711,6 +761,15 @@ def main():
                 Path(args.output_dir).mkdir(parents=True, exist_ok=True)
                 plot.plot(args.output_dir, 'scream')
 
+        case 'qlog-ack-delay':
+            basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
+            qlog_files = glob(os.path.join(args.input_dir, 'send_log', '*.qlog'))
+            plot = qlog_ack_delay_plot('QLOG Sender received ACK Delay ' + args.name)
+            if len(qlog_files) > 0:
+                if plot.add(qlog_files[0]):
+                    Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+                    plot.plot(args.output_dir, 'qlog-sender-received-ack-delay')
+
         case 'qlog-cwnd':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
             qlog_files = glob(os.path.join(args.input_dir, 'send_log', '*.qlog'))
@@ -730,14 +789,14 @@ def main():
         case 'qlog-bytes-sent':
             basetime = pd.to_datetime(args.basetime, unit='s').timestamp() * 1000
             qlog_files = glob(os.path.join(args.input_dir, 'send_log', '*.qlog'))
-            plot = qlog_bytes_sent_plot('QLOG Sender Bytes Sent' + args.name)
+            plot = qlog_bytes_sent_plot('QLOG Sender Bytes Sent ' + args.name)
             if len(qlog_files) > 0:
                 if plot.add_bytes_sent(qlog_files[0]):
                     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
                     plot.plot(args.output_dir, 'qlog-sender-sent')
 
             qlog_files = glob(os.path.join(args.input_dir, 'receive_log', '*.qlog'))
-            plot = qlog_bytes_sent_plot('QLOG Receiver Bytes Sent' + args.name)
+            plot = qlog_bytes_sent_plot('QLOG Receiver Bytes Sent ' + args.name)
             if len(qlog_files) > 0:
                 if plot.add_bytes_sent(qlog_files[0]):
                     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
